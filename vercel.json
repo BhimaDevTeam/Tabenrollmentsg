@@ -1,0 +1,117 @@
+{
+  "redirects": [
+    {
+      "source": "/tabqrgen",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/TABQRGEN",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollment/tabqrgen",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollment/tabqrgen/:path*",
+      "destination": "/tabqrgen/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollment/TABQRGEN",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollment/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/vrudhitabenrollment/static/:path*",
+      "destination": "/static/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollment/images/:path*",
+      "destination": "/images/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollment/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/vrudhitabenrollment/robots.txt",
+      "destination": "/robots.txt"
+    },
+    {
+      "source": "/vrudhitabenrollment/favicon.ico",
+      "destination": "/favicon.ico"
+    },
+    {
+      "source": "/TABQRGEN",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/TABQRGEN/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/tabqrgen",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/tabqrgen/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/tabqrgen/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollment/tabqrgen",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollment/tabqrgen/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollment/tabqrgen/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollment/TABQRGEN",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollment/TABQRGEN/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollment/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollment/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

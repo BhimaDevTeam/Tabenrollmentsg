@@ -58,6 +58,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/crm/:path*",
+      "destination": "https://bgstaging.bhima.gold/crm/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/crm/:path*",
+      "destination": "https://bgstaging.bhima.gold/crm/:path*"
+    },
+    {
       "source": "/vrudhitabenrollmentsg/static/:path*",
       "destination": "/static/:path*"
     },

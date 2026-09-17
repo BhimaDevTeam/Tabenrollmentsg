@@ -68,7 +68,16 @@ const MobileVer = () => {
             console.warn("CRM Searchcustomer returned status:", res.status);
           }
         } catch (crmErr) {
-          console.warn("CRM Searchcustomer fetch failed (CORS or network):", crmErr);
+          console.warn("CRM Searchcustomer direct fetch failed, trying proxy:", crmErr);
+          try {
+            const proxyUrl = `/api/crm/api_db.js/api/Searchcustomer/${encodeURIComponent(phoneNo)}`;
+            const proxyRes = await fetch(proxyUrl);
+            if (proxyRes.ok) {
+              crmList = await proxyRes.json();
+            }
+          } catch (proxyErr) {
+            console.warn("CRM Searchcustomer proxy fetch also failed:", proxyErr);
+          }
         }
 
         const firstRecord = Array.isArray(crmList) && crmList.length > 0 ? crmList[0] : null;

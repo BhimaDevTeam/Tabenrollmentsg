@@ -71,4 +71,4 @@ export const getNewMemberApiUrl = (countryOrCode) => {
 };
 
 // ── Singapore CRM — customer lookup by mobile / email ──
-export const SG_SEARCH_CUSTOMER_API = "http://bgstaging.bhima.gold/crm/api_db.js/api/Searchcustomer";
+export const SG_SEARCH_CUSTOMER_API = "https://bgstaging.bhima.gold/crm/api_db.js/api/Searchcustomer";

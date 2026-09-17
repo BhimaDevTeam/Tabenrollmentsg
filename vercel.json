@@ -16,6 +16,26 @@
       "permanent": false
     },
     {
+      "source": "/vrudhitabenrollmentsg/tabqrgen",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/tabqrgen/:path*",
+      "destination": "/tabqrgen/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/TABQRGEN",
+      "destination": "/tabqrgen/",
+      "permanent": false
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*",
+      "permanent": false
+    },
+    {
       "source": "/vrudhitabenrollment/tabqrgen",
       "destination": "/tabqrgen/",
       "permanent": false
@@ -37,6 +57,26 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/vrudhitabenrollmentsg/static/:path*",
+      "destination": "/static/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/images/:path*",
+      "destination": "/images/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/robots.txt",
+      "destination": "/robots.txt"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/favicon.ico",
+      "destination": "/favicon.ico"
+    },
     {
       "source": "/vrudhitabenrollment/static/:path*",
       "destination": "/static/:path*"
@@ -82,6 +122,30 @@
       "destination": "/tabqrgen/:path*"
     },
     {
+      "source": "/vrudhitabenrollmentsg/tabqrgen",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/tabqrgen/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/tabqrgen/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/TABQRGEN",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/TABQRGEN/",
+      "destination": "/tabqrgen/index.html"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/TABQRGEN/:path*",
+      "destination": "/tabqrgen/:path*"
+    },
+    {
       "source": "/vrudhitabenrollment/tabqrgen",
       "destination": "/tabqrgen/index.html"
     },
@@ -104,6 +168,10 @@
     {
       "source": "/vrudhitabenrollment/TABQRGEN/:path*",
       "destination": "/tabqrgen/:path*"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/:path*",
+      "destination": "/index.html"
     },
     {
       "source": "/vrudhitabenrollment/:path*",

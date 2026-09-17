@@ -2,7 +2,10 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const getInitialCountry = () => {
   if (typeof window !== "undefined") {
-    if (window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg")) {
+    if (
+      window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg") ||
+      window.location.hostname.toLowerCase().includes("tabenrollmentsg")
+    ) {
       return "Singapore";
     }
     const params = new URLSearchParams(window.location.search);

@@ -287,8 +287,7 @@ const Mobile = () => {
   useEffect(() => {
     async function bootstrapBranch() {
       if (!branch) {
-        clearEnrollmentCache();
-        setShowInvalidBranchModal(true);
+        navigate({ pathname: location.pathname, search: "?branch=TE4=" }, { replace: true });
         return;
       }
 
@@ -334,7 +333,7 @@ const Mobile = () => {
     }
 
     bootstrapBranch();
-  }, [branch, dispatch]);
+  }, [branch, dispatch, navigate, location.pathname]);
 
   useEffect(() => {
     localStorage.setItem("phoneNo", phoneNo);

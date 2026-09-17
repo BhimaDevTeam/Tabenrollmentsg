@@ -79,8 +79,13 @@ const Header = ({ branch }) => {
       }
     }
 
-    // Default to "KRM" when no branch is specified in URL
-    const finalBranch = (cleanBranch || "KRM").toUpperCase();
+    // Default to "LI" for Singapore app, otherwise "KRM"
+    const isSgHost = typeof window !== "undefined" && (
+      window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg") ||
+      window.location.hostname.toLowerCase().includes("tabenrollmentsg")
+    );
+    const defaultBranchCode = isSgHost ? "LI" : "KRM";
+    const finalBranch = (cleanBranch || defaultBranchCode).toUpperCase();
     // For Singapore, always display and use "LI" as the canonical branch code
     const displayFinalBranch = SINGAPORE_BRANCHES.includes(finalBranch) ? "LI" : finalBranch;
     setDisplayBranch(displayFinalBranch);
@@ -92,7 +97,10 @@ const Header = ({ branch }) => {
     const sgBranches = ["LN", "LI"];
     const isSingapore = currentCountry === "Singapore"
       || sgBranches.includes((branchCode || "").toUpperCase().trim())
-      || (typeof window !== "undefined" && window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg"))
+      || (typeof window !== "undefined" && (
+        window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg") ||
+        window.location.hostname.toLowerCase().includes("tabenrollmentsg")
+      ))
       || localStorage.getItem("selectedCountry") === "Singapore";
 
     // For Singapore, gold and silver rates are always retrieved using branch "LI"

@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/vrudhitabenrollmentsg/static/css/main.691d898a.css",
-    "main.js": "/vrudhitabenrollmentsg/static/js/main.387563f6.js",
+    "main.js": "/vrudhitabenrollmentsg/static/js/main.52b4d6bd.js",
     "static/js/453.b6748c65.chunk.js": "/vrudhitabenrollmentsg/static/js/453.b6748c65.chunk.js",
     "static/media/InterVariable-Italic.woff2": "/vrudhitabenrollmentsg/static/media/InterVariable-Italic.e295f70fe3e2df296c7b.woff2",
     "static/media/InterVariable.woff2": "/vrudhitabenrollmentsg/static/media/InterVariable.a0e477f2f1f9d2376fde.woff2",
@@ -14,11 +14,11 @@
     "static/media/primeicons.woff2": "/vrudhitabenrollmentsg/static/media/primeicons.024b32cc7bf399b1a847.woff2",
     "index.html": "/vrudhitabenrollmentsg/index.html",
     "main.691d898a.css.map": "/vrudhitabenrollmentsg/static/css/main.691d898a.css.map",
-    "main.387563f6.js.map": "/vrudhitabenrollmentsg/static/js/main.387563f6.js.map",
+    "main.52b4d6bd.js.map": "/vrudhitabenrollmentsg/static/js/main.52b4d6bd.js.map",
     "453.b6748c65.chunk.js.map": "/vrudhitabenrollmentsg/static/js/453.b6748c65.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.691d898a.css",
-    "static/js/main.387563f6.js"
+    "static/js/main.52b4d6bd.js"
   ]
 }

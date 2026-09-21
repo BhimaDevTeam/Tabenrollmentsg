@@ -34,9 +34,16 @@ const Subscriberdetails = ({
   const address1Ref = useRef(null);
   const [formKey, SetformKey] = useState("");
 
+  const cleanMobileNumber = (val) => {
+    if (!val || typeof val !== "string") return "";
+    const trimmed = val.trim();
+    if (trimmed.includes("@") || /[a-zA-Z]/.test(trimmed)) return "";
+    return trimmed;
+  };
+
   const isInputEmail = (phoneNo && phoneNo.includes("@")) || (passedEmail && passedEmail.includes("@"));
   const initialEmail = passedEmail || (phoneNo && phoneNo.includes("@") ? phoneNo : "") || (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "");
-  const initialMobile = phoneNo && !phoneNo.includes("@") ? phoneNo : "";
+  const initialMobile = cleanMobileNumber(phoneNo);
 
   const [areaName, setAreas] = useState([]);
   const [formData, setFormData] = useState({
@@ -95,7 +102,7 @@ const Subscriberdetails = ({
         const userEnteredAddress = prevFormData.address1 || addressInput || "";
         return {
           ...prevFormData,
-          mobileNo: newSubscriber.MobileNo || initialMobile || prevFormData.mobileNo || "",
+          mobileNo: cleanMobileNumber(newSubscriber.MobileNo) || initialMobile || cleanMobileNumber(prevFormData.mobileNo) || "",
           subscriberName: newSubscriber.Cust_Name || newSubscriber.CustomerName || newSubscriber.Name || prevFormData.subscriberName || "",
           gender: genderMap[newSubscriber.Gender] || genderMap[newSubscriber.Sex] || prevFormData.gender || "",
           address1: userEnteredAddress ? userEnteredAddress : ekycAddress,
@@ -132,14 +139,14 @@ const Subscriberdetails = ({
         ].filter(addr => addr && addr.trim()).join(", ");
 
         const isAadhaarVerified = customer.Isaadharverified === 1;
-        const custEmail = customer.email_id || customer.Email_ID || customer.EmailID || customer.email || "";
+        const custEmail = customer.email_id || customer.Email_ID || customer.EmailID || customer.email || (customer.MobileNo && customer.MobileNo.includes("@") ? customer.MobileNo : "") || "";
         const custPinCode = customer.Pin_Code || customer.PinCode || customer.pinCode || "";
 
         setFormData((prevFormData) => {
           const userEnteredAddress = prevFormData.address1 || addressInput || "";
           return {
             ...prevFormData,
-            mobileNo: customer.MobileNo || customer.Mobile_No || phoneNo || prevFormData.mobileNo || "",
+            mobileNo: cleanMobileNumber(customer.MobileNo || customer.Mobile_No) || initialMobile || cleanMobileNumber(prevFormData.mobileNo) || "",
             subscriberName:
               customer.Cust_Name || customer.CustomerName || customer.Name || customer.Aadharname || prevFormData.subscriberName || "",
             gender: genderMap[customer.Gender] || genderMap[customer.Sex] || prevFormData.gender || "",
@@ -162,7 +169,7 @@ const Subscriberdetails = ({
         // Handle case where customerData is empty or not provided
         setFormData((prevState) => ({
           ...prevState,
-          mobileNo: phoneNo || prevState.mobileNo,
+          mobileNo: initialMobile || cleanMobileNumber(prevState.mobileNo) || "",
         }));
         setArea("");
         setAddressInput("");
@@ -536,7 +543,7 @@ const Subscriberdetails = ({
             </span>
             <Form.Control
               type="text"
-              value={formData.mobileNo}
+              value={cleanMobileNumber(formData.mobileNo)}
               onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, "");
                 const maxLen = isSingapore ? 8 : 10;
@@ -544,9 +551,9 @@ const Subscriberdetails = ({
                   setFormData({ ...formData, mobileNo: val });
                 }
               }}
-              placeholder={isSingapore ? "Enter 8-digit mobile number" : "Enter 10-digit mobile number"}
+              placeholder={isSingapore ? "Enter 8-digit mobile number (optional)" : "Enter 10-digit mobile number"}
               className="form-control"
-              disabled={Boolean(phoneNo && !phoneNo.includes("@"))}
+              disabled={Boolean(cleanMobileNumber(phoneNo))}
               style={{ borderRadius: "0 4px 4px 0" }}
             />
           </div>

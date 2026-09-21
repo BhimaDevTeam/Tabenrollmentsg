@@ -1052,8 +1052,10 @@ const Mypage = () => {
 
       const crmCustomerPayload = {
         CustomerID: selectedCustomerID?.CustomerID || null,
-        MobileNo: subscriberData.mobileNo || phone || "",
-        EmailID: subscriberData.email || "",
+        MobileNo: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
+          ? subscriberData.mobileNo
+          : (phone && !phone.includes("@") && !/[a-zA-Z]/.test(phone)) ? phone : "",
+        EmailID: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         SourceMode: subscriberData.sourceMode || selectedCustomerID?.SourceMode || "RJR",
         Name: subscriberData.subscriberName || selectedCustomerID?.Name || "",
         IsAdult: subscriberData.isMajor === "Y" || subscriberData.isMajor === true || (subscriberData.dob ? calculateAge(subscriberData.dob) >= 18 : true),
@@ -1133,7 +1135,8 @@ const Mypage = () => {
   const saveDraft = async (overrideMode) => {
     // alert("in savdraaft called 2")
     try {
-      if (!subscriberData.mobileNo) {
+      const hasIdentifier = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@")) || subscriberData.email || phone;
+      if (!hasIdentifier) {
         navigate(`/?branch=${localStorage.getItem("encodedBranch") || btoa(localStorage.getItem("decodedBranch") || "KRM")}`);
         return;
       }
@@ -1166,10 +1169,12 @@ const Mypage = () => {
       const isaadharVerified = aadharverified || 0;
       const aadhar_No = aadharNo ? aadharNo : null;
       const cleanBranch = getCleanBranch(branch || membershipData.branch);
-      const mob = subscriberData.mobileNo;
+      const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@"))
+        ? subscriberData.mobileNo
+        : (subscriberData.email || (phone && phone.includes("@") ? phone : "") || "user");
       // Reuse existing SignRequestID when available (avoid regenerating PDF on every Save)
       let signRequestId =
-        sessionStorage.getItem(mob ? `currentSignRequestId_${mob}` : "currentSignRequestId") ||
+        sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
         sessionStorage.getItem("currentSignRequestId") ||
         null;
       if (!signRequestId) {
@@ -1222,8 +1227,8 @@ const Mypage = () => {
         State: subscriberData.state || "",
         City: subscriberData.city || "", //CITY
         Pin_Code: subscriberData.pinCode || "",
-        Mobile_No: subscriberData.mobileNo || "",
-        email_id: subscriberData.email || "",
+        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@")) ? subscriberData.mobileNo : "",
+        email_id: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         DateOf_Birth: subscriberData.dob || "",
         InstallmentAmount: installmentAmt,
         NomineName: nomineeData.nomineename || "",
@@ -1744,9 +1749,11 @@ const Mypage = () => {
           const aadhar_No = aadharNo ? aadharNo : null;
           const cleanBranch = getCleanBranch(branch || membershipData.branch);
           
-          const mob = subscriberData.mobileNo;
+          const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@"))
+            ? subscriberData.mobileNo
+            : (subscriberData.email || (phone && phone.includes("@") ? phone : "") || "user");
           let signRequestId =
-            sessionStorage.getItem(mob ? `currentSignRequestId_${mob}` : "currentSignRequestId") ||
+            sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
             sessionStorage.getItem("currentSignRequestId") ||
             null;
           if (!signRequestId) {
@@ -1908,7 +1915,7 @@ const Mypage = () => {
               selectedId={selectedId}
               selectedOption={selectedOption}
               customerData={customerData}
-              phoneNo={phoneNo}
+              phoneNo={phoneNo && !phoneNo.includes("@") ? phoneNo : ""}
               email={passedEmail || (phoneNo && phoneNo.includes("@") ? phoneNo : "")}
               loginMethod={loginMethod}
               clearError={clearError}
@@ -2283,7 +2290,10 @@ const Mypage = () => {
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">
               <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-                <li>Mobile No: {subscriberData.mobileNo}</li>
+                {subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && (
+                  <li>Mobile No: {subscriberData.mobileNo}</li>
+                )}
+                {subscriberData.email && <li>Email: {subscriberData.email}</li>}
                 <li>Subscriber Name: {subscriberData.subscriberName}</li>
                 <li>Scheme Name: {membershipData.selectedSchemeName}</li>
                 <li>
@@ -2357,7 +2367,10 @@ const Mypage = () => {
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">
               <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
-                <li>Mobile No: {subscriberData.mobileNo}</li>
+                {subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && (
+                  <li>Mobile No: {subscriberData.mobileNo}</li>
+                )}
+                {subscriberData.email && <li>Email: {subscriberData.email}</li>}
                 <li>Subscriber Name: {subscriberData.subscriberName}</li>
                 <li>Scheme Name: {membershipData.selectedSchemeName}</li>
                 <li>

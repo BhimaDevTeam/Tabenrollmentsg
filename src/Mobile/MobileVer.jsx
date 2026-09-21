@@ -101,17 +101,30 @@ const MobileVer = () => {
           seenNames.add(dedupKey);
 
           const primaryAddr = (nameEntry.Addresses || []).find(a => a.IsPrimary) || nameEntry.Addresses?.[0] || {};
-          const docs = (Array.isArray(nameEntry.Documents) ? nameEntry.Documents : []).map((d) => ({
-            ...d,
-            Number: d.Number || d.documentNo || d.Name || "",
-            documentNo: d.Number || d.documentNo || d.Name || "",
-            Name: d.Number || d.documentNo || d.Name || "",
-            DocumentDescription: d.Number || d.documentNo || d.Name || "",
-            ImagePath: d.ImagePath || d.ImageURL || "",
-            ImageURL: d.ImagePath || d.ImageURL || "",
-            imagePath: d.ImagePath || d.ImageURL || "",
-            Type: d.Type || "Document",
-          }));
+          const docs = (Array.isArray(nameEntry.Documents) ? nameEntry.Documents : []).map((d) => {
+            const num = String(d.Number || d.number || d.documentNo || d.DocumentNo || d.docNumber || d.DocNumber || d.Name || d.name || d.DocumentDescription || "").trim();
+            const img = String(d.ImagePath || d.imagePath || d.ImageURL || d.imageURL || d.ImageUrl || d.imageUrl || "").trim();
+            const type = String(d.Type || d.type || "Document").trim();
+            return {
+              ...d,
+              Number: num,
+              number: num,
+              documentNo: num,
+              DocumentNo: num,
+              docNumber: num,
+              Name: num,
+              name: num,
+              DocumentDescription: num,
+              ImagePath: img,
+              imagePath: img,
+              ImageURL: img,
+              imageURL: img,
+              ImageUrl: img,
+              imageUrl: img,
+              Type: type,
+              type: type,
+            };
+          });
 
           mapped.push({
             ID: `${firstRecord.CustomerID}_${idx}`,

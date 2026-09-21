@@ -167,35 +167,57 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
     });
   }, [uploadedDocs]);
 
-  const getDocTypeName = (type, typeId) => {
-    const rawType = String(type || "").trim();
-    const upperType = rawType.toUpperCase();
-    const tId = Number(typeId || 0);
+  const getDocTypeName = (doc, fallbackTypeId) => {
+    let type = "";
+    let typeId = 0;
+    let docNo = "";
 
-    if (upperType === "PAN") return "PAN Card";
+    if (typeof doc === "object" && doc !== null) {
+      type = String(doc.Type || doc.type || "").trim();
+      typeId = Number(doc.documentTypeId || doc.DocumentTypeID || fallbackTypeId || 0);
+      docNo = String(doc.Number || doc.number || doc.documentNo || doc.DocumentNo || doc.docNumber || doc.Name || doc.DocumentDescription || "").trim();
+    } else {
+      type = String(doc || "").trim();
+      typeId = Number(fallbackTypeId || 0);
+    }
+
+    const upperType = type.toUpperCase();
+
+    if (upperType === "PAN") {
+      // If docNo matches Singapore NRIC/FIN format (starts with S, T, F, G, M followed by 7 digits and a letter)
+      if (/^[STFGM][0-9]{7}[A-Z]$/i.test(docNo)) {
+        return "NRIC Card";
+      }
+      // If docNo matches Indian PAN format (5 letters, 4 digits, 1 letter)
+      if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(docNo)) {
+        return "PAN Card";
+      }
+      return isSingapore ? "NRIC Card" : "PAN Card";
+    }
+
     if (upperType === "NRIC") return "NRIC Card";
-    if (upperType === "AAD" || upperType === "AADHAR" || upperType === "AADHAAR" || tId === 29) return "Aadhaar Card";
-    if (upperType === "DRI" || tId === 26) return "Driving License";
+    if (upperType === "AAD" || upperType === "AADHAR" || upperType === "AADHAAR" || typeId === 29) return "Aadhaar Card";
+    if (upperType === "DRI" || typeId === 26) return "Driving License";
     if (upperType === "FIN") return "E-Pass (FIN Number)";
-    if (upperType === "VOT" || (tId === 27 && !isSingapore)) return "Voter ID Card";
-    if (tId === 27 && isSingapore) return "E-Pass (FIN Number)";
-    if (upperType === "PAS" || tId === 28) return "Passport";
-    if (upperType === "IMG" || tId === 30) return "Profile Image";
+    if (upperType === "VOT" || (typeId === 27 && !isSingapore)) return "Voter ID Card";
+    if (typeId === 27 && isSingapore) return "E-Pass (FIN Number)";
+    if (upperType === "PAS" || typeId === 28) return "Passport";
+    if (upperType === "IMG" || typeId === 30) return "Profile Image";
 
     const found = documentTypes.find(d => 
       (Array.isArray(d.typeCode) && d.typeCode.some(tc => tc.toUpperCase() === upperType)) || 
-      d.id === tId || 
-      String(d.id) === rawType
+      d.id === typeId || 
+      String(d.id) === type
     );
     if (found) return found.name;
 
-    return rawType || "Document";
+    return type || "Document";
   };
 
   const displayDocs = useMemo(() => {
     if (!Array.isArray(uploadedDocs)) return [];
     const filtered = uploadedDocs.filter(doc => {
-      const t = String(doc.Type || "").toUpperCase();
+      const t = String(doc.Type || doc.type || "").toUpperCase();
       const tid = Number(doc.documentTypeId || doc.DocumentTypeID || 0);
       return !(t.startsWith("NEF") || t.startsWith("SOD") || t === "IMG" || tid === 30);
     });
@@ -203,9 +225,28 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
     const seen = new Set();
 
     filtered.forEach(doc => {
-      const docNum = (doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || "").trim();
-      const img = doc.ImagePath || doc.ImageURL || doc.imagePath || doc.ImageUrl || "";
-      const key = `${doc.Type || doc.documentTypeId}_${docNum || img}`;
+      const docNum = String(
+        doc.Number ||
+        doc.number ||
+        doc.documentNo ||
+        doc.DocumentNo ||
+        doc.docNumber ||
+        doc.DocNumber ||
+        doc.Name ||
+        doc.name ||
+        doc.DocumentDescription ||
+        ""
+      ).trim();
+      const img = String(
+        doc.ImagePath ||
+        doc.imagePath ||
+        doc.ImageURL ||
+        doc.imageURL ||
+        doc.ImageUrl ||
+        doc.imageUrl ||
+        ""
+      ).trim();
+      const key = `${doc.Type || doc.type || doc.documentTypeId}_${docNum || img}`;
       if (!seen.has(key)) {
         seen.add(key);
         uniqueDocs.push(doc);
@@ -434,15 +475,15 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
             displayDocs.map((doc, index) => (
               <tr key={index}>
                 <td>{index + 1}</td>
-                <td>{getDocTypeName(doc.Type, doc.documentTypeId)}</td>
-                <td>{doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || doc.DocumentDecription || "-"}</td>
+                <td>{getDocTypeName(doc, doc.documentTypeId)}</td>
+                <td>{doc.Number || doc.number || doc.documentNo || doc.DocumentNo || doc.docNumber || doc.DocNumber || doc.Name || doc.name || doc.DocumentDescription || doc.DocumentDecription || "-"}</td>
                 <td>
                   <span
                     style={{ cursor: "pointer" }}
                     onClick={() => {
-                      let imgSrc = doc.ImagePath || doc.ImageURL || doc.imagePath || doc.ImageUrl;
+                      let imgSrc = doc.ImagePath || doc.imagePath || doc.ImageURL || doc.imageURL || doc.ImageUrl || doc.imageUrl;
                       if (!imgSrc) {
-                        const upperType = String(doc.Type || "").toUpperCase();
+                        const upperType = String(doc.Type || doc.type || "").toUpperCase();
                         if (aadharverified === 1 && (upperType.includes("AAD") || doc.documentTypeId === 29)) {
                           imgSrc = "/images/aadhardummy.png";
                         } else if (aadharverified === 1 && (upperType.includes("PAN") || upperType.includes("NRIC") || doc.documentTypeId === 25)) {

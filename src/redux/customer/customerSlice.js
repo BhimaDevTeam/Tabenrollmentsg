@@ -26,9 +26,19 @@ const getInitialCountry = () => {
 const initialCountry = getInitialCountry();
 const storedLocked = typeof window !== "undefined" && localStorage.getItem("isCountryLocked") === "true";
 
+const getStoredCustomer = () => {
+    if (typeof window !== "undefined") {
+        try {
+            const raw = sessionStorage.getItem("selectedCustomerID");
+            if (raw) return JSON.parse(raw);
+        } catch (e) {}
+    }
+    return {};
+};
+
 const initialState = {
     customer: [],
-    selectedCustomerID: {},
+    selectedCustomerID: getStoredCustomer(),
     isOtherCustomer: false,
     isminorDisable: false,
     selectedCountry: initialCountry,
@@ -46,6 +56,15 @@ export const customerSlice = createSlice({
         },
         setSelectedCustomerID: (state, action) => {
             state.selectedCustomerID = action.payload;
+            if (typeof window !== "undefined") {
+                try {
+                    if (action.payload && Object.keys(action.payload).length > 0) {
+                        sessionStorage.setItem("selectedCustomerID", JSON.stringify(action.payload));
+                    } else {
+                        sessionStorage.removeItem("selectedCustomerID");
+                    }
+                } catch (e) {}
+            }
         },
         setIsOtherCustomer: (state, action) => {
             state.isOtherCustomer = action.payload;

@@ -658,26 +658,39 @@ const Mypage = () => {
   console.log("selectedCustomerIDocument",selectedCustomerIDocument)
 
   useEffect(() => {
-    if (!selectedCustomerID || Object.keys(selectedCustomerID).length === 0) {
+    const activeCustomer = (selectedCustomerID && Object.keys(selectedCustomerID).length > 0)
+      ? selectedCustomerID
+      : (Array.isArray(customerData) && customerData.length > 0 ? customerData[0] : null)
+      || (() => {
+        try {
+          const raw = sessionStorage.getItem("selectedCustomerID");
+          return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          return null;
+        }
+      })();
+
+    if (!activeCustomer || Object.keys(activeCustomer).length === 0) {
       setUploadedDocs([]);
       setAllDocs([]);
       return;
     }
 
     const rawDocs = [
-      ...(Array.isArray(selectedCustomerID.Documents) ? selectedCustomerID.Documents : []),
-      ...(Array.isArray(selectedCustomerID.customerDocuments) ? selectedCustomerID.customerDocuments : []),
-      ...(Array.isArray(selectedCustomerID.combinedDocuments) ? selectedCustomerID.combinedDocuments : []),
-      ...(Array.isArray(selectedCustomerID.draftCustomerDocuments) ? selectedCustomerID.draftCustomerDocuments : []),
-      ...(Array.isArray(selectedCustomerID.document) ? selectedCustomerID.document : []),
+      ...(Array.isArray(activeCustomer.Documents) ? activeCustomer.Documents : []),
+      ...(Array.isArray(activeCustomer.customerDocuments) ? activeCustomer.customerDocuments : []),
+      ...(Array.isArray(activeCustomer.combinedDocuments) ? activeCustomer.combinedDocuments : []),
+      ...(Array.isArray(activeCustomer.draftCustomerDocuments) ? activeCustomer.draftCustomerDocuments : []),
+      ...(Array.isArray(activeCustomer.document) ? activeCustomer.document : []),
     ];
 
-    const profileImage = selectedCustomerID.ImageURL || selectedCustomerID.ImageUrl || selectedCustomerID.Image;
+    const profileImage = activeCustomer.ImageURL || activeCustomer.ImageUrl || activeCustomer.Image;
     if (profileImage && !rawDocs.some(d => (d.ImageURL || d.ImageUrl || d.ImagePath) === profileImage)) {
       rawDocs.push({
         DocumentTypeID: 30,
         Type: "IMG",
         Number: "IMG",
+        number: "IMG",
         documentNo: "IMG",
         Name: "Profile Image",
         ImageURL: profileImage,
@@ -715,8 +728,8 @@ const Mypage = () => {
       const seenKeys = new Set();
 
       rawDocs.forEach(doc => {
-        const url = doc.ImageURL || doc.ImageUrl || doc.ImagePath || doc.imagePath || "";
-        const rawType = String(doc.Type || doc.docType || "").trim();
+        const url = String(doc.ImageURL || doc.ImageUrl || doc.imageURL || doc.imageUrl || doc.ImagePath || doc.imagePath || doc.documentData || "").trim();
+        const rawType = String(doc.Type || doc.type || doc.docType || "").trim();
         const upperType = rawType.toUpperCase();
 
         let typeId = 0;
@@ -743,7 +756,19 @@ const Mypage = () => {
         }
 
         const typeCode = rawType || typeIdToCodeMap[typeId] || "Document";
-        const docNo = (doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || doc.DocumentDecription || "").trim();
+        const docNo = String(
+          doc.Number ||
+          doc.number ||
+          doc.documentNo ||
+          doc.DocumentNo ||
+          doc.docNumber ||
+          doc.DocNumber ||
+          doc.Name ||
+          doc.name ||
+          doc.DocumentDescription ||
+          doc.DocumentDecription ||
+          ""
+        ).trim();
 
         const dedupKey = `${typeCode}_${typeId}_${docNo || url}`;
         if (!seenKeys.has(dedupKey)) {
@@ -751,16 +776,20 @@ const Mypage = () => {
           uniqueDocs.push({
             ...doc,
             Type: typeCode,
+            type: typeCode,
             ImagePath: url,
             ImageURL: url,
             imagePath: url,
             ImageUrl: url,
             Name: docNo,
+            name: docNo,
             documentNo: docNo,
+            DocumentNo: docNo,
             Number: docNo,
+            number: docNo,
             DocumentDescription: docNo,
             documentTypeId: typeId,
-            IsVerified: Boolean(doc.IsVerified),
+            IsVerified: Boolean(doc.IsVerified || doc.isVerified),
           });
         }
       });
@@ -771,7 +800,7 @@ const Mypage = () => {
       setUploadedDocs([]);
       setAllDocs([]);
     }
-  }, [selectedCustomerID]); // Depend only on selectedCustomerID
+  }, [selectedCustomerID, customerData]);
 
 
 

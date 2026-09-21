@@ -1,7 +1,54 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from 'react-redux';
 import { Button } from "@mui/material";
-import { Camera, RefreshCw, Upload, Trash2, X } from 'lucide-react';
+import { Camera, RefreshCw, Upload, Trash2, X, User } from 'lucide-react';
+
+const generateDummyProfileImage = () => {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+
+    // Elegant warm background
+    const bgGrad = ctx.createLinearGradient(0, 0, 400, 400);
+    bgGrad.addColorStop(0, "#F5EFE6");
+    bgGrad.addColorStop(1, "#E8DFD0");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 400, 400);
+
+    // Outer gold border
+    ctx.strokeStyle = "#CD9A50";
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, 394, 394);
+
+    // Avatar head
+    ctx.fillStyle = "#8D6E4B";
+    ctx.beginPath();
+    ctx.arc(200, 155, 65, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Avatar body / shoulders
+    ctx.beginPath();
+    ctx.arc(200, 335, 115, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Label badge at bottom
+    ctx.fillStyle = "rgba(97, 65, 25, 0.85)";
+    ctx.fillRect(50, 345, 300, 36);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "bold 16px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("CUSTOMER PHOTO", 200, 363);
+
+    return canvas.toDataURL("image/jpeg", 0.9);
+  } catch (e) {
+    console.warn("Error generating dummy image:", e);
+    return "";
+  }
+};
 
 const resolveImageUrl = (url) => {
   if (!url || typeof url !== "string") return null;
@@ -90,6 +137,19 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
     }
   }, [capturedImage]);
 
+  // Use dummy photo fallback or direct selection
+  const handleUseDummy = () => {
+    const dummy = generateDummyProfileImage();
+    if (currentImage && currentImage !== dummy) {
+      setPreviousImage(currentImage);
+    }
+    setCurrentImage(dummy);
+    setImageError(false);
+    stopCamera();
+    setIsCameraOpen(false);
+    if (getImageUrl) getImageUrl(dummy);
+  };
+
   // Start camera
   const startCamera = async () => {
     try {
@@ -102,8 +162,10 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Error accessing camera: ", error);
-      alert("Unable to access camera. Please check browser permissions or use 'Upload Photo'.");
+      console.warn("Camera not accessible, automatically using dummy photo:", error);
+      stopCamera();
+      setIsCameraOpen(false);
+      handleUseDummy();
     }
   };
 
@@ -262,6 +324,19 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
               <Upload className="w-5 h-5" />
               Upload File
             </Button>
+
+            <Button
+              onClick={handleUseDummy}
+              style={{
+                background: "#795548",
+                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <User className="w-5 h-5" />
+              Use Dummy Photo
+            </Button>
           </div>
         </div>
       )}
@@ -316,6 +391,19 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
             </Button>
 
             <Button
+              onClick={handleUseDummy}
+              style={{
+                background: "#795548",
+                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <User className="w-5 h-5" />
+              Use Dummy Photo
+            </Button>
+
+            <Button
               onClick={handleDelete}
               style={{
                 background: "#c62828",
@@ -358,6 +446,19 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
           >
             <Upload className="w-5 h-5" />
             Upload Photo
+          </Button>
+
+          <Button
+            onClick={handleUseDummy}
+            style={{
+              background: "#795548",
+              color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <User className="w-5 h-5" />
+            Use Dummy Photo
           </Button>
         </div>
       )}

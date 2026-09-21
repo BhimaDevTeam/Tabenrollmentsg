@@ -289,16 +289,17 @@ function Paymentgateway({
       toast.error("Please accept the Terms and Conditions"); // ✅ show toast
       return;
     }
-    if (!hasEkycSignature) {
-      if (!signLinkSent) {
-        toast.error("Please send for digital signature first!");
-        return;
-      }
-      if (!isCustomerSigned) {
-        toast.error("Please wait for the customer to sign the document!");
-        return;
-      }
-    }
+    // As of now: don't take signature on save/payment
+    // if (!hasEkycSignature) {
+    //   if (!signLinkSent) {
+    //     toast.error("Please send for digital signature first!");
+    //     return;
+    //   }
+    //   if (!isCustomerSigned) {
+    //     toast.error("Please wait for the customer to sign the document!");
+    //     return;
+    //   }
+    // }
     if (
       parsedData.installmentAmount === 0 ||
       parsedData.installmentAmount === ""
@@ -703,25 +704,27 @@ function Paymentgateway({
               </div>
             )}
 
-            {isEsignEnabled && isTermsChecked && !hasEkycSignature && !isCustomerSigned && (
+            {/* As of now: don't take signature on save */}
+            {/* {isEsignEnabled && isTermsChecked && !hasEkycSignature && !isCustomerSigned && (
               <div className="pay-hint">
                 Please complete your signature in the pad
               </div>
-            )}
+            )} */}
 
             <button
               type="button"
-              className={`pay-btn-primary ${!(isTermsChecked && (!isEsignEnabled || hasEkycSignature || isCustomerSigned)) ? "is-disabled" : ""}`}
+              className={`pay-btn-primary ${!isTermsChecked ? "is-disabled" : ""}`}
               onClick={() => {
                 if (!isTermsChecked) {
                   toast.error("Please accept the Terms and Conditions");
                   return;
                 }
-                if (isEsignEnabled && !hasEkycSignature && !isCustomerSigned) {
-                  toast.error("Customer signature is required to save enrollment.");
-                  setShowSignPadModal(true);
-                  return;
-                }
+                // As of now: don't take signature on save
+                // if (isEsignEnabled && !hasEkycSignature && !isCustomerSigned) {
+                //   toast.error("Customer signature is required to save enrollment.");
+                //   setShowSignPadModal(true);
+                //   return;
+                // }
                 SaveOffline();
               }}
             >
@@ -787,9 +790,10 @@ function Paymentgateway({
                     setIsTermsChecked(true);
                     setShowTermsModal(false);
                     // Singapore: open signature pad immediately after T&C acceptance
-                    if (!hasEkycSignature && !isCustomerSigned) {
-                      setShowSignPadModal(true);
-                    }
+                    // As of now: don't take signature:
+                    // if (!hasEkycSignature && !isCustomerSigned) {
+                    //   setShowSignPadModal(true);
+                    // }
                   }}
                 >
                   I Accept & Close

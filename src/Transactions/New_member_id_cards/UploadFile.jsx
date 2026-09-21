@@ -259,6 +259,7 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
       }
 
       onFileUpload({
+        file,
         documentData,
         docType,
         docNumber,

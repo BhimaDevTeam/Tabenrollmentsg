@@ -30,8 +30,9 @@ import CameraIcon from '@mui/icons-material/Camera';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Card } from "react-bootstrap";
-import { useSelector } from "react-redux";
-import { Drafttabledb, getNewMemberApiUrl, getCollectionApiUrl } from "../../apiurl";
+import { useSelector, useDispatch } from "react-redux";
+import { setSelectedCustomerID } from "../../redux/customer/customerSlice";
+import { Drafttabledb, getNewMemberApiUrl, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API } from "../../apiurl";
 import { formatCurrency } from "../../utlis/currencyUtils";
 import WebCamComponent from "./WebCamComponent";
 import UploadDocument from "./UploadFile";
@@ -42,6 +43,7 @@ import Header from "../../header";
 
 // import { ErrorSharp } from '@mui/icons-material';
 const Mypage = () => {
+  const dispatch = useDispatch();
   const { selectedCustomerID, selectedCountry, currencySymbol } = useSelector((state) => state.customer || {});
   const activeSymbol = currencySymbol || (selectedCountry === "Singapore" ? "S$" : "₹");
   console.log("selectedCustomerID",selectedCustomerID)
@@ -746,6 +748,8 @@ const Mypage = () => {
           documentTypeId: Number(data.docType),
           imagePath: data.documentData,
           documentNo: data.docNumber,
+          file: data.file,
+          typeCode: data.typeCode,
         },
       ]);
     }
@@ -755,6 +759,7 @@ const Mypage = () => {
     docObj.Name = data.docNumber;
     docObj.Type = docObjTypeId[data.docType];
     docObj.ImagePath = data.documentData;
+    docObj.file = data.file;
 
     // setUploadedDocs([ ...selectedCustomerID.Documents, ...uploadedDocs, docObj]);
     setUploadedDocs((prev) => [...prev, docObj]);
@@ -784,16 +789,213 @@ const Mypage = () => {
 //     }
 //   };
 
+  const dataUrlToFile = (dataUrl, filename) => {
+    try {
+      if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return null;
+      const arr = dataUrl.split(",");
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : "image/png";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename || `image_${Date.now()}.png`, { type: mime });
+    } catch (err) {
+      console.warn("Failed to convert dataUrl to File:", err);
+      return null;
+    }
+  };
+
+  const formatDateToYMD = (dateVal) => {
+    if (!dateVal) return "";
+    if (typeof dateVal === "string") {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) return dateVal;
+      const parts = dateVal.split(/[/-]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+        } else if (parts[2].length === 4) {
+          return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+        }
+      }
+    }
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split("T")[0];
+    }
+    return dateVal;
+  };
+
+  const getDocTypeName = (doc, isSg) => {
+    const typeId = Number(doc.documentTypeId || doc.DocumentTypeID || doc.docType || 0);
+    if (typeId === 25) return isSg ? "NRIC" : "PAN";
+    if (typeId === 26) return "DRI";
+    if (typeId === 27) return isSg ? "FIN" : "VOT";
+    if (typeId === 28) return "PAS";
+    if (typeId === 29) return "aadhar";
+    if (doc.Type) {
+      const t = String(doc.Type).trim();
+      if (t.toLowerCase() === "aad" || t.toLowerCase() === "aadhar" || t.toLowerCase() === "aadhaar") return "aadhar";
+      return t;
+    }
+    return isSg ? "NRIC" : "PAN";
+  };
+
+  const saveCustomerToCrm = async () => {
+    try {
+      const cleanBranch = getCleanBranch(branch || membershipData.branch);
+      const isSg = selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN";
+      const cCode = isSg ? "SG" : "IN";
+      const cName = isSg ? "Singapore" : "India";
+
+      const docList = [];
+      const imageFiles = [];
+
+      const sourceDocs = (uploadedDocs && uploadedDocs.length > 0)
+        ? uploadedDocs
+        : (alldocs && alldocs.length > 0)
+          ? alldocs
+          : (selectedCustomerID?.Documents || []);
+
+      const seenDocNums = new Set();
+
+      for (const d of sourceDocs) {
+        const docNo = (d.documentNo || d.Name || d.Number || "").trim();
+        const docType = getDocTypeName(d, isSg);
+        const dedupKey = `${docType}_${docNo}`;
+        if (seenDocNums.has(dedupKey) && docNo) continue;
+        if (docNo) seenDocNums.add(dedupKey);
+
+        const imgPathOrData = d.ImagePath || d.imagePath || d.documentData || "";
+        const isRemote = typeof imgPathOrData === "string" && (imgPathOrData.startsWith("http") || imgPathOrData.startsWith("Upload/"));
+
+        docList.push({
+          Type: docType,
+          Number: docNo,
+          ImagePath: isRemote ? imgPathOrData : "",
+          IssueDate: null,
+          ExpiryDate: null,
+          IsVerified: Boolean(d.IsVerified || aadharverified === 1),
+        });
+
+        if (d.file instanceof File || d.file instanceof Blob) {
+          imageFiles.push({ file: d.file, filename: `${docNo || docType}.png` });
+        } else if (typeof imgPathOrData === "string" && imgPathOrData.startsWith("data:")) {
+          const converted = dataUrlToFile(imgPathOrData, `${docNo || docType}.png`);
+          if (converted) {
+            imageFiles.push({ file: converted, filename: `${docNo || docType}.png` });
+          }
+        }
+      }
+
+      if (subscriberData.panNo && !seenDocNums.has(`PAN_${subscriberData.panNo.trim()}`) && !seenDocNums.has(`NRIC_${subscriberData.panNo.trim()}`)) {
+        const pType = isSg ? "NRIC" : "PAN";
+        docList.push({
+          Type: pType,
+          Number: subscriberData.panNo.trim(),
+          ImagePath: "",
+          IssueDate: null,
+          ExpiryDate: null,
+          IsVerified: false,
+        });
+        seenDocNums.add(`${pType}_${subscriberData.panNo.trim()}`);
+      }
+      if (aadharNo && !seenDocNums.has(`aadhar_${String(aadharNo).trim()}`)) {
+        docList.push({
+          Type: "aadhar",
+          Number: String(aadharNo).trim(),
+          ImagePath: "",
+          IssueDate: null,
+          ExpiryDate: null,
+          IsVerified: Boolean(aadharverified === 1),
+        });
+        seenDocNums.add(`aadhar_${String(aadharNo).trim()}`);
+      }
+
+      const crmCustomerPayload = {
+        CustomerID: selectedCustomerID?.CustomerID || null,
+        MobileNo: subscriberData.mobileNo || phone || "",
+        EmailID: subscriberData.email || "",
+        SourceMode: subscriberData.sourceMode || selectedCustomerID?.SourceMode || "RJR",
+        Name: subscriberData.subscriberName || selectedCustomerID?.Name || "",
+        IsAdult: subscriberData.isMajor === "Y" || subscriberData.isMajor === true || (subscriberData.dob ? calculateAge(subscriberData.dob) >= 18 : true),
+        DateOfBirth: formatDateToYMD(subscriberData.dob),
+        IsMembership: false,
+        Address1: subscriberData.address1 || "",
+        Address2: subscriberData.address2 || "",
+        City: subscriberData.city || (isSg ? "Singapore" : ""),
+        State: subscriberData.state || (isSg ? "Singapore" : ""),
+        District: subscriberData.district || subscriberData.city || (isSg ? "Singapore" : ""),
+        CountryCode: cCode,
+        CountryName: cName,
+        PinCode: subscriberData.pinCode || "",
+        AddressType: "HOME",
+        Documents: docList,
+      };
+
+      console.log("[CRM Customerdatacreate] payload:", crmCustomerPayload);
+
+      const formData = new FormData();
+      formData.append("documents", JSON.stringify(crmCustomerPayload));
+
+      imageFiles.forEach((item) => {
+        formData.append("images", item.file, item.filename);
+      });
+
+      let crmResponse = null;
+      try {
+        const directRes = await fetch(SG_CUSTOMER_DATA_CREATE_API, {
+          method: "POST",
+          body: formData,
+        });
+        if (directRes.ok) {
+          crmResponse = await directRes.json();
+        } else {
+          console.warn("[CRM Customerdatacreate] Direct fetch returned status:", directRes.status);
+        }
+      } catch (err) {
+        console.warn("[CRM Customerdatacreate] Direct fetch failed, trying proxy:", err);
+      }
+
+      if (!crmResponse) {
+        try {
+          const proxyUrl = "/api/crm/api_db.js/api/Customerdatacreate";
+          const proxyRes = await fetch(proxyUrl, {
+            method: "POST",
+            body: formData,
+          });
+          if (proxyRes.ok) {
+            crmResponse = await proxyRes.json();
+          }
+        } catch (proxyErr) {
+          console.warn("[CRM Customerdatacreate] Proxy fetch failed:", proxyErr);
+        }
+      }
+
+      console.log("[CRM Customerdatacreate] response:", crmResponse);
+      if (crmResponse?.success && crmResponse?.CustomerID) {
+        dispatch(setSelectedCustomerID({
+          ...(selectedCustomerID || {}),
+          CustomerID: crmResponse.CustomerID,
+          CustomerDBID: crmResponse.CustomerDBID,
+          Documents: crmResponse.Documents || selectedCustomerID?.Documents || [],
+        }));
+      }
+      return crmResponse;
+    } catch (crmError) {
+      console.error("[CRM Customerdatacreate] error:", crmError);
+      return null;
+    }
+  };
+
   const saveDraft = async (overrideMode) => {
     // alert("in savdraaft called 2")
     try {
       if (!subscriberData.mobileNo) {
-        // alert(
-        //   "Phone number is required. You will be redirected to the home page."
-        // );
-        // toast.error('Phone number is required.'); // Display error message
-        navigate(`/?branch=${localStorage.getItem("encodedBranch") || btoa(localStorage.getItem("decodedBranch") || "KRM")}`); // Navigate to the home page
-        return; // Prevent saving the draft
+        navigate(`/?branch=${localStorage.getItem("encodedBranch") || btoa(localStorage.getItem("decodedBranch") || "KRM")}`);
+        return;
       }
       const isSingapore = selectedCountry === "Singapore";
       if (!isSingapore && !alldocs) {
@@ -814,7 +1016,6 @@ const Mypage = () => {
       }
 
       setIsSaving(true);
-      // console.log('All validations passed. Initiating save draft process.');
       setFlag(true);
       let add1 = subscriberData.address1 || "";
       let add2 = subscriberData.address2 || "";
@@ -832,8 +1033,8 @@ const Mypage = () => {
         sessionStorage.getItem("currentSignRequestId") ||
         null;
       if (!signRequestId) {
-        // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: enabled.
-        const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "1") === "1";
+        // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: disabled (0)
+        const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "0") === "1";
         if (isSignatureEmailEnabled) {
           try {
             signRequestId = await generateEnrollmentPdf(cleanBranch);
@@ -1013,6 +1214,16 @@ const Mypage = () => {
             .then((r) => r.json())
             .then((d) => console.log("[CRM] upload-to-crm after draft save:", d))
             .catch((e) => console.warn("[CRM] Upload failed (non-blocking):", e));
+
+          // Call CRM Customerdatacreate API
+          saveCustomerToCrm()
+            .then((crmRes) => {
+              console.log("[CRM Customerdatacreate] save response:", crmRes);
+              if (crmRes?.success) {
+                toast.success("Customer saved in CRM successfully");
+              }
+            })
+            .catch((e) => console.warn("[CRM Customerdatacreate] failed (non-blocking):", e));
         }
 
         setIsDraftSaved(true);
@@ -1399,8 +1610,8 @@ const Mypage = () => {
             sessionStorage.getItem("currentSignRequestId") ||
             null;
           if (!signRequestId) {
-            // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: enabled.
-            const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "1") === "1";
+            // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: disabled (0)
+            const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "0") === "1";
             if (isSignatureEmailEnabled) {
               try {
                 signRequestId = await generateEnrollmentPdf(cleanBranch);
@@ -1411,6 +1622,11 @@ const Mypage = () => {
               console.log("[OfflineUpdate] Signature email disabled via EnableSignatureEmail=0 — skipping generateEnrollmentPdf.");
             }
           }
+          // Also call CRM Customerdatacreate
+          saveCustomerToCrm()
+            .then((crmRes) => console.log("[CRM Customerdatacreate] on offline update:", crmRes))
+            .catch((e) => console.warn("[CRM Customerdatacreate] offline update failed:", e));
+
           setIsSaving(false);
           setopenofflineModal(true);
           return draftIDData;

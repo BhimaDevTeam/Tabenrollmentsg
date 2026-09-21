@@ -1,14 +1,41 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from 'react-redux';
-import { Button, CircularProgress } from "@mui/material";
-import { Camera, RefreshCw, Upload, Save, X } from 'lucide-react';
+import { Button } from "@mui/material";
+import { Camera, RefreshCw, Upload, Trash2, X } from 'lucide-react';
 
-const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrmPhoto, isSavingCrmPhoto }) => {
+const resolveImageUrl = (url) => {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (
+    !trimmed ||
+    trimmed === "IMG" ||
+    trimmed === "IMG.png" ||
+    trimmed === "null" ||
+    trimmed === "undefined" ||
+    trimmed === "-"
+  ) {
+    return null;
+  }
+  if (trimmed.startsWith("data:image/") || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("Upload/") || trimmed.startsWith("/Upload/") || trimmed.includes("/")) {
+    const clean = trimmed.startsWith("/") ? trimmed.slice(1) : trimmed;
+    return `https://bgstaging.bhima.gold/${clean}`;
+  }
+  return null;
+};
+
+const CameraComponent = ({ getImageUrl, capturedImage }) => {
   const { selectedCustomerID } = useSelector((state) => state.customer);
-  const [imageBase64, setImageBase64] = useState(null);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [existingProfileImage, setExistingProfileImage] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
   const [previousImage, setPreviousImage] = useState(null);
+  const [initialImage, setInitialImage] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -24,13 +51,26 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
         ...(Array.isArray(selectedCustomerID.document) ? selectedCustomerID.document : []),
       ];
 
-      const profileDoc = allDocs.find(doc => doc.Type === "IMG" || Number(doc.DocumentTypeID) === 30 || Number(doc.documentTypeId) === 30);
-      const imgUrl = selectedCustomerID.ImageURL || selectedCustomerID.ImageUrl || selectedCustomerID.Image || profileDoc?.ImageURL || profileDoc?.ImageUrl || profileDoc?.ImagePath;
+      const profileDoc = allDocs.find(
+        (doc) =>
+          doc.Type === "IMG" ||
+          Number(doc.DocumentTypeID) === 30 ||
+          Number(doc.documentTypeId) === 30
+      );
+      const rawImgUrl =
+        selectedCustomerID.ImageURL ||
+        selectedCustomerID.ImageUrl ||
+        selectedCustomerID.Image ||
+        profileDoc?.ImageURL ||
+        profileDoc?.ImageUrl ||
+        profileDoc?.ImagePath;
 
-      if (imgUrl) {
-        setExistingProfileImage(imgUrl);
-        setImageBase64(imgUrl);
-        if (getImageUrl) getImageUrl(imgUrl);
+      const validUrl = resolveImageUrl(rawImgUrl);
+      if (validUrl) {
+        setInitialImage(validUrl);
+        setCurrentImage(validUrl);
+        setImageError(false);
+        if (getImageUrl) getImageUrl(validUrl);
       }
     }
   }, [selectedCustomerID, getImageUrl]);
@@ -38,9 +78,15 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
   // Show eKYC Aadhaar photo when capturedImage changes (from parent)
   useEffect(() => {
     if (capturedImage && (capturedImage.startsWith("data:image") || capturedImage.startsWith("http"))) {
-      setImageBase64(capturedImage);
-      setExistingProfileImage(null);
-      setIsCameraOpen(false);
+      const validUrl = resolveImageUrl(capturedImage);
+      if (validUrl) {
+        if (currentImage && currentImage !== validUrl) {
+          setPreviousImage(currentImage);
+        }
+        setCurrentImage(validUrl);
+        setImageError(false);
+        setIsCameraOpen(false);
+      }
     }
   }, [capturedImage]);
 
@@ -64,15 +110,17 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
   // Stop camera
   const stopCamera = () => {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach((track) => track.stop());
       setCameraStream(null);
       if (videoRef.current) videoRef.current.srcObject = null;
     }
   };
 
-  // Retake or Open Camera
+  // Open Camera
   const handleCameraOpen = async () => {
-    setPreviousImage(imageBase64 || existingProfileImage);
+    if (currentImage) {
+      setPreviousImage(currentImage);
+    }
     setIsCameraOpen(true);
     await startCamera();
   };
@@ -80,10 +128,6 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
   const handleCancelCamera = () => {
     stopCamera();
     setIsCameraOpen(false);
-    if (previousImage) {
-      setImageBase64(previousImage);
-      if (getImageUrl) getImageUrl(previousImage);
-    }
   };
 
   const takePhoto = () => {
@@ -96,9 +140,12 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const photoBase64 = canvas.toDataURL("image/jpeg", 0.75);
-    setImageBase64(photoBase64);
-    setExistingProfileImage(null);
+    const photoBase64 = canvas.toDataURL("image/jpeg", 0.85);
+    if (currentImage && currentImage !== photoBase64) {
+      setPreviousImage(currentImage);
+    }
+    setCurrentImage(photoBase64);
+    setImageError(false);
     stopCamera();
     setIsCameraOpen(false);
     if (getImageUrl) getImageUrl(photoBase64);
@@ -110,8 +157,11 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target.result;
-      setImageBase64(base64);
-      setExistingProfileImage(null);
+      if (currentImage && currentImage !== base64) {
+        setPreviousImage(currentImage);
+      }
+      setCurrentImage(base64);
+      setImageError(false);
       stopCamera();
       setIsCameraOpen(false);
       if (getImageUrl) getImageUrl(base64);
@@ -120,12 +170,31 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
     e.target.value = "";
   };
 
+  const handleDelete = () => {
+    if (previousImage && previousImage !== currentImage) {
+      setCurrentImage(previousImage);
+      setPreviousImage(null);
+      setImageError(false);
+      if (getImageUrl) getImageUrl(previousImage);
+    } else if (initialImage && initialImage !== currentImage) {
+      setCurrentImage(initialImage);
+      setPreviousImage(null);
+      setImageError(false);
+      if (getImageUrl) getImageUrl(initialImage);
+    } else {
+      setCurrentImage(null);
+      setPreviousImage(null);
+      setImageError(false);
+      if (getImageUrl) getImageUrl(null);
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => stopCamera();
   }, []);
 
-  const currentDisplayImage = imageBase64 || existingProfileImage;
+  const hasValidDisplayImage = Boolean(currentImage && !imageError);
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 animate-fade-in" style={{ padding: "10px" }}>
@@ -161,8 +230,8 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
                 background: "linear-gradient(103.45deg, #614119 -11.68%, #CD9A50 48.54%, #614119 108.76%)",
                 color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 18px"
               }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <Camera className="w-5 h-5" />
               Take Photo
@@ -174,8 +243,8 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
                 background: "#666",
                 color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
               }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <X className="w-5 h-5" />
               Cancel
@@ -187,26 +256,30 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
                 background: "#444",
                 color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
               }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <Upload className="w-5 h-5" />
-              Upload Photo File
+              Upload File
             </Button>
           </div>
         </div>
       )}
 
       {/* === Photo Display & Actions (when camera is not streaming) === */}
-      {!isCameraOpen && currentDisplayImage && (
+      {!isCameraOpen && hasValidDisplayImage && (
         <div style={{ textAlign: "center", width: "100%" }}>
           <img
-            src={currentDisplayImage}
-            alt="Customer Photo"
+            src={currentImage}
+            alt="Customer Profile"
+            onError={() => {
+              console.warn("Failed to load photo:", currentImage);
+              setImageError(true);
+            }}
             style={{
               width: "100%",
-              maxWidth: "380px",
-              maxHeight: "380px",
+              maxWidth: "360px",
+              maxHeight: "360px",
               objectFit: "contain",
               borderRadius: "8px",
               marginTop: "10px",
@@ -222,11 +295,11 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
                 background: "linear-gradient(103.45deg, #614119 -11.68%, #CD9A50 48.54%, #614119 108.76%)",
                 color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
               }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <RefreshCw className="w-5 h-5" />
-              Retake Photo
+              Retake / Edit Photo
             </Button>
 
             <Button
@@ -235,44 +308,31 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
                 background: "#555",
                 color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
               }}
-              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <Upload className="w-5 h-5" />
               Upload Photo
             </Button>
 
-            {onSaveCrmPhoto && (
-              <Button
-                onClick={() => onSaveCrmPhoto(currentDisplayImage)}
-                disabled={isSavingCrmPhoto}
-                style={{
-                  background: isSavingCrmPhoto ? "#999" : "#2e7d32",
-                  color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 18px",
-                  boxShadow: "0 2px 6px rgba(46,125,50,0.3)"
-                }}
-                onMouseEnter={e => !isSavingCrmPhoto && (e.currentTarget.style.transform = "scale(1.03)")}
-                onMouseLeave={e => !isSavingCrmPhoto && (e.currentTarget.style.transform = "scale(1)")}
-              >
-                {isSavingCrmPhoto ? (
-                  <>
-                    <CircularProgress size={18} style={{ color: "white" }} />
-                    Saving to CRM...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    Save Photo to CRM
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              onClick={handleDelete}
+              style={{
+                background: "#c62828",
+                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <Trash2 className="w-5 h-5" />
+              Delete Photo
+            </Button>
           </div>
         </div>
       )}
 
-      {/* === No image at all and camera closed === */}
-      {!isCameraOpen && !currentDisplayImage && (
+      {/* === No valid image or broken image, and camera closed === */}
+      {!isCameraOpen && !hasValidDisplayImage && (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "10px" }}>
           <Button
             onClick={handleCameraOpen}
@@ -280,8 +340,8 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
               background: "linear-gradient(103.45deg, #614119 -11.68%, #CD9A50 48.54%, #614119 108.76%)",
               color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 18px"
             }}
-            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <Camera className="w-5 h-5" />
             Open Camera
@@ -293,8 +353,8 @@ const CameraComponent = ({ getImageUrl, capturedImage, aadharVerified, onSaveCrm
               background: "#555",
               color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
             }}
-            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <Upload className="w-5 h-5" />
             Upload Photo

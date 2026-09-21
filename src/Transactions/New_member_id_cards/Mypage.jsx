@@ -585,32 +585,8 @@ const Mypage = () => {
       return acc;
     }, {});
   };
-  const [isSavingCrmPhoto, setIsSavingCrmPhoto] = useState(false);
-
   const getImageUrl = (url) => {
     setImage(url);
-  };
-
-  const handleSaveCrmPhoto = async (photoToSave) => {
-    setIsSavingCrmPhoto(true);
-    try {
-      const targetPhoto = photoToSave || image;
-      if (!targetPhoto) {
-        toast.warning("Please capture or upload a photo first.");
-        return;
-      }
-      const crmRes = await saveCustomerToCrm(targetPhoto);
-      if (crmRes?.success || crmRes?.status || crmRes?.CustomerID) {
-        toast.success("Photo saved to CRM successfully!");
-      } else {
-        toast.info("Photo submitted to CRM.");
-      }
-    } catch (err) {
-      console.error("Failed to save photo to CRM:", err);
-      toast.error("Failed to save photo to CRM. Please try again.");
-    } finally {
-      setIsSavingCrmPhoto(false);
-    }
   };
   const handleDraft = async() => {
     //  event.preventDefault();
@@ -2187,9 +2163,6 @@ const Mypage = () => {
             <WebCamComponent
               getImageUrl={getImageUrl}
               capturedImage={image}
-              aadharVerified={aadharverified}
-              onSaveCrmPhoto={handleSaveCrmPhoto}
-              isSavingCrmPhoto={isSavingCrmPhoto}
             />
           </AccordionDetails>
         </Accordion>

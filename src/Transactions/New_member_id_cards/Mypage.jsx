@@ -677,6 +677,9 @@ const Mypage = () => {
       rawDocs.push({
         DocumentTypeID: 30,
         Type: "IMG",
+        Number: "IMG",
+        documentNo: "IMG",
+        Name: "Profile Image",
         ImageURL: profileImage,
         ImagePath: profileImage,
         DocumentDescription: "Profile Image"
@@ -686,10 +689,13 @@ const Mypage = () => {
     if (rawDocs.length > 0) {
       const typeToIdMap = {
         AAD: 29,
+        AADHAR: 29,
+        AADHAAR: 29,
         PAN: 25,
         NRIC: 25,
         DRI: 26,
         VOT: 27,
+        FIN: 27,
         PAS: 28,
         IMG: 30,
         NEF: 24,
@@ -706,24 +712,55 @@ const Mypage = () => {
       };
 
       const uniqueDocs = [];
-      const seenTypes = new Set();
+      const seenKeys = new Set();
 
       rawDocs.forEach(doc => {
-        const url = doc.ImageURL || doc.ImageUrl || doc.ImagePath;
-        const typeId = Number(doc.DocumentTypeID || doc.documentTypeId || typeToIdMap[doc.Type] || (!isNaN(doc.Type) ? Number(doc.Type) : 0) || 29);
-        const typeCode = typeIdToCodeMap[typeId] || (typeof doc.Type === "string" && isNaN(doc.Type) ? doc.Type : "AAD");
-        const docNo = doc.DocumentDescription || doc.DocumentDecription || doc.Name || doc.documentNo || "";
+        const url = doc.ImageURL || doc.ImageUrl || doc.ImagePath || doc.imagePath || "";
+        const rawType = String(doc.Type || doc.docType || "").trim();
+        const upperType = rawType.toUpperCase();
 
-        if (url && !seenTypes.has(typeId)) {
-          seenTypes.add(typeId);
+        let typeId = 0;
+        if (doc.DocumentTypeID || doc.documentTypeId) {
+          typeId = Number(doc.DocumentTypeID || doc.documentTypeId);
+        } else if (typeToIdMap[upperType]) {
+          typeId = typeToIdMap[upperType];
+        } else if (!isNaN(rawType) && rawType !== "") {
+          typeId = Number(rawType);
+        } else if (upperType.includes("AAD")) {
+          typeId = 29;
+        } else if (upperType.includes("PAN")) {
+          typeId = 25;
+        } else if (upperType.includes("NRIC")) {
+          typeId = 25;
+        } else if (upperType.includes("DRI") || upperType.includes("LICEN")) {
+          typeId = 26;
+        } else if (upperType.includes("PAS")) {
+          typeId = 28;
+        } else if (upperType.includes("IMG") || upperType.includes("PHOTO")) {
+          typeId = 30;
+        } else {
+          typeId = 29;
+        }
+
+        const typeCode = rawType || typeIdToCodeMap[typeId] || "Document";
+        const docNo = (doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || doc.DocumentDecription || "").trim();
+
+        const dedupKey = `${typeCode}_${typeId}_${docNo || url}`;
+        if (!seenKeys.has(dedupKey)) {
+          seenKeys.add(dedupKey);
           uniqueDocs.push({
+            ...doc,
             Type: typeCode,
             ImagePath: url,
             ImageURL: url,
+            imagePath: url,
+            ImageUrl: url,
             Name: docNo,
             documentNo: docNo,
+            Number: docNo,
+            DocumentDescription: docNo,
             documentTypeId: typeId,
-            imagePath: url,
+            IsVerified: Boolean(doc.IsVerified),
           });
         }
       });
@@ -742,27 +779,39 @@ const Mypage = () => {
   const handleFileUpload = (data) => {
     setUploadedFile(data); // Store the document data
     if (data) {
+      const docTypeMapped = docObjTypeId[data.docType] || data.typeCode || (data.docType == 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") : "Document");
+      const docNo = data.docNumber;
+
       setAllDocs((prevDocs) => [
         ...prevDocs,
         {
           documentTypeId: Number(data.docType),
           imagePath: data.documentData,
-          documentNo: data.docNumber,
+          ImagePath: data.documentData,
+          ImageURL: data.documentData,
+          documentNo: docNo,
+          Number: docNo,
+          Name: docNo,
           file: data.file,
           typeCode: data.typeCode,
+          Type: docTypeMapped,
         },
       ]);
-    }
-    console.log("xcxcxcxc", data, alldocs, selectedCustomerID.Documents,uploadedFile,uploadedDocs); // Log the data for debugging
-    // ImagePath(documentData), Name(docNumber), Type(docType), UpdateOn
-    const docObj = {};
-    docObj.Name = data.docNumber;
-    docObj.Type = docObjTypeId[data.docType];
-    docObj.ImagePath = data.documentData;
-    docObj.file = data.file;
 
-    // setUploadedDocs([ ...selectedCustomerID.Documents, ...uploadedDocs, docObj]);
-    setUploadedDocs((prev) => [...prev, docObj]);
+      const docObj = {
+        Name: docNo,
+        documentNo: docNo,
+        Number: docNo,
+        Type: docTypeMapped,
+        ImagePath: data.documentData,
+        ImageURL: data.documentData,
+        imagePath: data.documentData,
+        documentTypeId: Number(data.docType),
+        file: data.file,
+      };
+
+      setUploadedDocs((prev) => [...prev, docObj]);
+    }
   };
   useEffect(() => {
     console.log("uploadedDocs in mypage", uploadedDocs);
@@ -829,17 +878,26 @@ const Mypage = () => {
   };
 
   const getDocTypeName = (doc, isSg) => {
+    if (doc.Type) {
+      const t = String(doc.Type).trim();
+      const lower = t.toLowerCase();
+      if (lower === "aad" || lower === "aadhar" || lower === "aadhaar") return "aadhar";
+      if (lower === "pan") return "PAN";
+      if (lower === "nric") return "NRIC";
+      if (lower === "dri" || lower === "driving license") return "DRI";
+      if (lower === "fin") return "FIN";
+      if (lower === "vot" || lower === "voter") return "VOT";
+      if (lower === "pas" || lower === "passport") return "PAS";
+      if (lower === "img" || lower === "photo" || lower === "profile image") return "IMG";
+      return t;
+    }
     const typeId = Number(doc.documentTypeId || doc.DocumentTypeID || doc.docType || 0);
     if (typeId === 25) return isSg ? "NRIC" : "PAN";
     if (typeId === 26) return "DRI";
     if (typeId === 27) return isSg ? "FIN" : "VOT";
     if (typeId === 28) return "PAS";
     if (typeId === 29) return "aadhar";
-    if (doc.Type) {
-      const t = String(doc.Type).trim();
-      if (t.toLowerCase() === "aad" || t.toLowerCase() === "aadhar" || t.toLowerCase() === "aadhaar") return "aadhar";
-      return t;
-    }
+    if (typeId === 30) return "IMG";
     return isSg ? "NRIC" : "PAN";
   };
 
@@ -862,13 +920,15 @@ const Mypage = () => {
       const seenDocNums = new Set();
 
       for (const d of sourceDocs) {
-        const docNo = (d.documentNo || d.Name || d.Number || "").trim();
         const docType = getDocTypeName(d, isSg);
+        if (docType === "IMG") continue; // Profile / camera photo is handled specifically below
+
+        const docNo = (d.Number || d.documentNo || d.Name || "").trim();
         const dedupKey = `${docType}_${docNo}`;
         if (seenDocNums.has(dedupKey) && docNo) continue;
         if (docNo) seenDocNums.add(dedupKey);
 
-        const imgPathOrData = d.ImagePath || d.imagePath || d.documentData || "";
+        const imgPathOrData = d.ImagePath || d.imagePath || d.documentData || d.ImageURL || "";
         const isRemote = typeof imgPathOrData === "string" && (imgPathOrData.startsWith("http") || imgPathOrData.startsWith("Upload/"));
 
         docList.push({
@@ -912,6 +972,29 @@ const Mypage = () => {
           IsVerified: Boolean(aadharverified === 1),
         });
         seenDocNums.add(`aadhar_${String(aadharNo).trim()}`);
+      }
+
+      // Handle profile image / captured webcam image as document name "IMG"
+      const profilePhoto = image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
+      if (profilePhoto) {
+        const isRemoteProfile = typeof profilePhoto === "string" && (profilePhoto.startsWith("http") || profilePhoto.startsWith("Upload/"));
+        docList.push({
+          Type: "IMG",
+          Number: "IMG",
+          ImagePath: isRemoteProfile ? profilePhoto : "",
+          IssueDate: null,
+          ExpiryDate: null,
+          IsVerified: false,
+        });
+
+        if (profilePhoto instanceof File || profilePhoto instanceof Blob) {
+          imageFiles.push({ file: profilePhoto, filename: "IMG.png" });
+        } else if (typeof profilePhoto === "string" && profilePhoto.startsWith("data:")) {
+          const converted = dataUrlToFile(profilePhoto, "IMG.png");
+          if (converted) {
+            imageFiles.push({ file: converted, filename: "IMG.png" });
+          }
+        }
       }
 
       const crmCustomerPayload = {

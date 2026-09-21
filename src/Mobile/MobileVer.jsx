@@ -101,7 +101,17 @@ const MobileVer = () => {
           seenNames.add(dedupKey);
 
           const primaryAddr = (nameEntry.Addresses || []).find(a => a.IsPrimary) || nameEntry.Addresses?.[0] || {};
-          const docs = Array.isArray(nameEntry.Documents) ? nameEntry.Documents : [];
+          const docs = (Array.isArray(nameEntry.Documents) ? nameEntry.Documents : []).map((d) => ({
+            ...d,
+            Number: d.Number || d.documentNo || d.Name || "",
+            documentNo: d.Number || d.documentNo || d.Name || "",
+            Name: d.Number || d.documentNo || d.Name || "",
+            DocumentDescription: d.Number || d.documentNo || d.Name || "",
+            ImagePath: d.ImagePath || d.ImageURL || "",
+            ImageURL: d.ImagePath || d.ImageURL || "",
+            imagePath: d.ImagePath || d.ImageURL || "",
+            Type: d.Type || "Document",
+          }));
 
           mapped.push({
             ID: `${firstRecord.CustomerID}_${idx}`,
@@ -115,7 +125,7 @@ const MobileVer = () => {
             IsPrimary: nameEntry.IsPrimary,
             IsMembership: nameEntry.IsMembership,
             major: nameEntry.IsAdult ? "Y" : "N",
-            Isaadharverified: docs.length > 0 ? 1 : 0,
+            Isaadharverified: (docs.some(d => d.IsVerified) || firstRecord.IsAadharVerified) ? 1 : 0,
             Address1: primaryAddr.Address1 || "",
             Address2: primaryAddr.Address2 || "",
             City: primaryAddr.City || "",

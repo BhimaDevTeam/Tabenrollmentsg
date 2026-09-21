@@ -168,28 +168,46 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
   }, [uploadedDocs]);
 
   const getDocTypeName = (type, typeId) => {
-    const found = documentTypes.find(d => d.typeCode.includes(type) || d.id == typeId || d.id == type);
+    const rawType = String(type || "").trim();
+    const upperType = rawType.toUpperCase();
+    const tId = Number(typeId || 0);
+
+    if (upperType === "PAN") return "PAN Card";
+    if (upperType === "NRIC") return "NRIC Card";
+    if (upperType === "AAD" || upperType === "AADHAR" || upperType === "AADHAAR" || tId === 29) return "Aadhaar Card";
+    if (upperType === "DRI" || tId === 26) return "Driving License";
+    if (upperType === "FIN") return "E-Pass (FIN Number)";
+    if (upperType === "VOT" || (tId === 27 && !isSingapore)) return "Voter ID Card";
+    if (tId === 27 && isSingapore) return "E-Pass (FIN Number)";
+    if (upperType === "PAS" || tId === 28) return "Passport";
+    if (upperType === "IMG" || tId === 30) return "Profile Image";
+
+    const found = documentTypes.find(d => 
+      (Array.isArray(d.typeCode) && d.typeCode.some(tc => tc.toUpperCase() === upperType)) || 
+      d.id === tId || 
+      String(d.id) === rawType
+    );
     if (found) return found.name;
-    if (type === "AAD" || typeId == 29) return "Aadhaar Card";
-    if (type === "PAN" || type === "NRIC" || typeId == 25) return isSingapore ? "NRIC Card" : "PAN Card";
-    if (type === "DRI" || typeId == 26) return "Driving License";
-    if (type === "VOT" || typeId == 27) return "Voter ID Card";
-    if (type === "PAS" || typeId == 28) return "Passport";
-    if (type === "IMG" || typeId == 30) return "Profile Image";
-    return type || "Document";
+
+    return rawType || "Document";
   };
 
   const displayDocs = useMemo(() => {
     if (!Array.isArray(uploadedDocs)) return [];
-    const filtered = uploadedDocs.filter(doc => !(doc.Type?.startsWith("NEF") || doc.Type?.startsWith("SOD") || doc.Type === "IMG" || doc.documentTypeId == 30));
+    const filtered = uploadedDocs.filter(doc => {
+      const t = String(doc.Type || "").toUpperCase();
+      const tid = Number(doc.documentTypeId || doc.DocumentTypeID || 0);
+      return !(t.startsWith("NEF") || t.startsWith("SOD") || t === "IMG" || tid === 30);
+    });
     const uniqueDocs = [];
     const seen = new Set();
-    const typeToIdMap = { AAD: 29, PAN: 25, NRIC: 25, DRI: 26, VOT: 27, PAS: 28, IMG: 30, NEF: 24 };
 
     filtered.forEach(doc => {
-      const typeId = Number(doc.documentTypeId || doc.DocumentTypeID || typeToIdMap[doc.Type] || (!isNaN(doc.Type) ? Number(doc.Type) : 0) || 29);
-      if (!seen.has(typeId)) {
-        seen.add(typeId);
+      const docNum = (doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || "").trim();
+      const img = doc.ImagePath || doc.ImageURL || doc.imagePath || doc.ImageUrl || "";
+      const key = `${doc.Type || doc.documentTypeId}_${docNum || img}`;
+      if (!seen.has(key)) {
+        seen.add(key);
         uniqueDocs.push(doc);
       }
     });
@@ -417,18 +435,23 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
               <tr key={index}>
                 <td>{index + 1}</td>
                 <td>{getDocTypeName(doc.Type, doc.documentTypeId)}</td>
-                <td>{doc.Name || doc.documentNo || doc.DocumentDescription || doc.DocumentDecription || "-"}</td>
+                <td>{doc.Number || doc.documentNo || doc.Name || doc.DocumentDescription || doc.DocumentDecription || "-"}</td>
                 <td>
                   <span
                     style={{ cursor: "pointer" }}
                     onClick={() => {
                       let imgSrc = doc.ImagePath || doc.ImageURL || doc.imagePath || doc.ImageUrl;
-                      if (aadharverified === 1 && doc.Type === "AAD") {
-                        imgSrc = "/images/aadhardummy.png";
-                      } else if (aadharverified === 1 && doc.Type === "PAN") {
-                        imgSrc = "/images/pandummy.png";
+                      if (!imgSrc) {
+                        const upperType = String(doc.Type || "").toUpperCase();
+                        if (aadharverified === 1 && (upperType.includes("AAD") || doc.documentTypeId === 29)) {
+                          imgSrc = "/images/aadhardummy.png";
+                        } else if (aadharverified === 1 && (upperType.includes("PAN") || upperType.includes("NRIC") || doc.documentTypeId === 25)) {
+                          imgSrc = "/images/pandummy.png";
+                        }
                       }
-                      setPopupImage(imgSrc);
+                      if (imgSrc) {
+                        setPopupImage(imgSrc);
+                      }
                     }}
                   >
                     <i className="bi bi-eye"></i>

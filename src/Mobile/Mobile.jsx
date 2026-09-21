@@ -538,24 +538,13 @@ const Mobile = () => {
         return;
       }
 
-      setLoading(true);
+      setLoading(false);
       setErrors("");
-
-      const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
-      dispatch(setIsCountryLocked(true));
       localStorage.setItem("customerEmail", emailTrimmed);
       localStorage.setItem("phoneNo", emailTrimmed);
-      navigate("/MobileVer", {
-        state: {
-          phoneNo: emailTrimmed,
-          email: emailTrimmed,
-          loginMethod: "email",
-          branch,
-          selectedScheme: schemeToPass,
-        },
-      });
-      console.log("Singapore email entered: Skipping OTP screen.");
-      setLoading(false);
+      setReceivedOtp("");
+      setOtpError("");
+      setShowModal(true); // Ask for OTP
       return;
     }
 
@@ -574,19 +563,10 @@ const Mobile = () => {
     setErrors("");
 
     if (isSingapore) {
-      const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
-      dispatch(setIsCountryLocked(true));
       localStorage.setItem("phoneNo", phoneNo);
-      localStorage.removeItem("customerEmail");
-      navigate("/MobileVer", {
-        state: {
-          phoneNo,
-          loginMethod: "mobile",
-          branch,
-          selectedScheme: schemeToPass,
-        },
-      });
-      console.log("Singapore mobile number entered: Skipping OTP screen.");
+      setReceivedOtp("");
+      setOtpError("");
+      setShowModal(true); // Ask for OTP
       setLoading(false);
       return;
     }
@@ -614,10 +594,14 @@ const Mobile = () => {
       if (result.success || result.Status === "Success" || result.Status === "SUCCESS" || result.status === true) {
         console.log("OTP sent successfully to your mobile number");
       }
+      setReceivedOtp("");
+      setOtpError("");
       setShowModal(true); // Show the OTP modal
     } catch (err) {
       console.error("Error sending OTP:", err);
       // Fallback: still show modal so process can proceed
+      setReceivedOtp("");
+      setOtpError("");
       setShowModal(true);
     } finally {
       setLoading(false);
@@ -637,18 +621,50 @@ const Mobile = () => {
     setLoading(true);
 
     const trimmedOtp = receivedOtp.trim();
+    const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
 
-    // Bypass check: If OTP is 123456 (for Singapore / testing)
+    // Hardcode OTP: 123456
     if (trimmedOtp === "123456") {
-      const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
       dispatch(setIsCountryLocked(true));
-      navigate("/MobileVer", { state: { phoneNo, branch, selectedScheme: schemeToPass } });
-      console.log("OTP bypassed successfully (123456)");
+      const emailTrimmed = loginMethod === "email" ? emailInput.trim() : (localStorage.getItem("customerEmail") || "");
+      if (loginMethod === "email") {
+        localStorage.setItem("customerEmail", emailTrimmed);
+        localStorage.setItem("phoneNo", emailTrimmed);
+        navigate("/MobileVer", {
+          state: {
+            phoneNo: emailTrimmed,
+            email: emailTrimmed,
+            loginMethod: "email",
+            branch,
+            selectedScheme: schemeToPass,
+          },
+        });
+      } else {
+        localStorage.setItem("phoneNo", phoneNo);
+        navigate("/MobileVer", {
+          state: {
+            phoneNo,
+            email: emailTrimmed,
+            loginMethod: "mobile",
+            branch,
+            selectedScheme: schemeToPass,
+          },
+        });
+      }
+      console.log("OTP verified successfully (123456)");
       setShowModal(false);
       setLoading(false);
       return;
     }
 
+    // For Singapore or Email logins: OTP is strictly 123456
+    if (isSingapore || loginMethod === "email") {
+      setOtpError("Invalid OTP. Please enter 123456");
+      setLoading(false);
+      return;
+    }
+
+    // For Indian mobile numbers, check against backend API as well
     try {
       const responseSubOTP = await fetch(
         `${CustomerMobileOTP}/Validateotp/${phoneNo}/${trimmedOtp}`,
@@ -690,10 +706,18 @@ const Mobile = () => {
         );
       };
 
-      if (isOtpValid(data, receivedOtp.trim())) {
-        const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
+      if (isOtpValid(data, trimmedOtp)) {
+        const emailTrimmed = localStorage.getItem("customerEmail") || "";
         dispatch(setIsCountryLocked(true));
-        navigate("/MobileVer", { state: { phoneNo, branch, selectedScheme: schemeToPass } });
+        navigate("/MobileVer", {
+          state: {
+            phoneNo,
+            email: emailTrimmed,
+            loginMethod: "mobile",
+            branch,
+            selectedScheme: schemeToPass,
+          },
+        });
         console.log("OTP verified successfully");
         setShowModal(false);
       } else {
@@ -701,15 +725,7 @@ const Mobile = () => {
       }
     } catch (err) {
       console.error("Error verifying OTP:", err);
-      // Fallback for dev/testing: allow 123456
-      if (receivedOtp.trim() === "123456") {
-        const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
-        dispatch(setIsCountryLocked(true));
-        navigate("/MobileVer", { state: { phoneNo, branch, selectedScheme: schemeToPass } });
-        setShowModal(false);
-      } else {
-        setOtpError("Failed to verify OTP. Please try again.");
-      }
+      setOtpError("Failed to verify OTP. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -764,14 +780,16 @@ const Mobile = () => {
   };
 
   const handleResend = async () => {
-    // Your logic to resend OTP goes here
-    // For example:
     setOtpError(""); // clear any previous error
     setReceivedOtp(""); // clear OTP input
     setDisabled(true); // Start the timer
-    // Call your API to resend OTP
+    if (isSingapore || loginMethod === "email") {
+      setMessage("OTP resent successfully!");
+      return;
+    }
+    // Call API to resend OTP for India
     try {
-      await resendOtpApiCall(); // replace with your actual API call
+      await resendOtpApiCall();
       setMessage("OTP resent successfully!");
     } catch (error) {
       setMessage("Failed to resend OTP.");
@@ -1296,11 +1314,16 @@ const Mobile = () => {
           >
             <Form.Group className="mb-1" controlId="formBasicOtp">
               <Form.Label style={{ marginBottom: "0.5rem", fontWeight: "500" }}>
-                Enter OTP{" "}
+                Enter OTP sent to{" "}
+                <span style={{ color: "#7a4b27", fontWeight: "600" }}>
+                  {loginMethod === "email"
+                    ? (emailInput || "your email")
+                    : (phoneNo ? `${selectedCountry === "Singapore" ? "+65 " : "+91 "}${phoneNo}` : "your mobile")}
+                </span>
               </Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Enter OTP"
+                placeholder="Enter 6-digit OTP"
                 value={receivedOtp}
                 className="form-control custom-placeholder"
                 maxLength={6}

@@ -32,14 +32,20 @@ const MobileVer = () => {
 
   const selectedScheme = location.state?.selectedScheme || "";
   const branch = location.state?.branch || "";
-  const email = location.state?.email || (location.state?.phoneNo?.includes("@") ? location.state.phoneNo : "") || "";
+  const email =
+    location.state?.email ||
+    (location.state?.phoneNo?.includes("@") ? location.state.phoneNo : "") ||
+    (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "") ||
+    "";
   const loginMethod = location.state?.loginMethod || (email ? "email" : "mobile");
 
   useEffect(() => {
     if (location.state && location.state.phoneNo) {
       setPhoneNo(location.state.phoneNo);
+    } else if (email) {
+      setPhoneNo(email);
     }
-  }, [location.state]);
+  }, [location.state, email]);
 
   useEffect(() => {
     if (phoneNo) {

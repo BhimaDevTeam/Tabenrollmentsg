@@ -65,6 +65,12 @@ const Mypage = () => {
   } =
     location.state && typeof location.state === "object" ? location.state : {};
 
+  const effectiveEmail =
+    passedEmail ||
+    (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
+    (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "") ||
+    "";
+
   const isBase64 = (str) => {
     if (!str || typeof str !== "string") return false;
     try {
@@ -1957,8 +1963,8 @@ const Mypage = () => {
               selectedOption={selectedOption}
               customerData={customerData}
               phoneNo={phoneNo && !phoneNo.includes("@") ? phoneNo : ""}
-              email={passedEmail || (phoneNo && phoneNo.includes("@") ? phoneNo : "")}
-              loginMethod={loginMethod}
+              email={effectiveEmail}
+              loginMethod={loginMethod || (effectiveEmail ? "email" : "mobile")}
               clearError={clearError}
               showGuardianDetails={showGuardianDetails}
               setShowGuardianDetails={setShowGuardianDetails}

@@ -41,8 +41,10 @@ const Subscriberdetails = ({
     return trimmed;
   };
 
-  const isInputEmail = (phoneNo && phoneNo.includes("@")) || (passedEmail && passedEmail.includes("@"));
-  const initialEmail = passedEmail || (phoneNo && phoneNo.includes("@") ? phoneNo : "") || (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "");
+  const initialEmail =
+    passedEmail ||
+    (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
+    (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "");
   const initialMobile = cleanMobileNumber(phoneNo);
 
   const [areaName, setAreas] = useState([]);
@@ -188,9 +190,9 @@ const Subscriberdetails = ({
       selectedId === "minor" ||
       selectedId === "new" ||
       selectedOption === "withoutAadhar"
-    )
-      setFormData({
-        ...formData,
+    ) {
+      setFormData((prev) => ({
+        ...prev,
         // mobileNo: phoneNo ||"",
         subscriberName: "",
         gender: "",
@@ -199,10 +201,17 @@ const Subscriberdetails = ({
         pinCode: "",
         city: "",
         state: "",
-        email: "",
+        email: initialEmail || prev.email || "",
         dob: "",
-      });
-  }, [selectedId, selectedOption]);
+      }));
+    }
+  }, [selectedId, selectedOption, initialEmail]);
+
+  useEffect(() => {
+    if (initialEmail && !formData.email) {
+      setFormData((prev) => ({ ...prev, email: initialEmail }));
+    }
+  }, [initialEmail]);
 
   useEffect(() => {
     // enroll new minor
@@ -411,8 +420,8 @@ const Subscriberdetails = ({
   };
 
   const handleEmailChange = (e) => {
+    if (initialEmail) return; // Do not allow change when email is passed from login/OTP
     const { value } = e.target;
-    // Allow any value to be entered, validation will be handled separately
     setFormData((prevFormData) => ({
       ...prevFormData,
       email: value,
@@ -651,15 +660,18 @@ const Subscriberdetails = ({
         </Form.Group>
 
         <Form.Group controlId="formEmail" className="form-group">
-          <Form.Label className="form-label">Email-ID:</Form.Label>
+          <Form.Label className="form-label">
+            Email-ID:{Boolean(initialEmail) && <span style={{ fontSize: "11px", color: "#6c757d", marginLeft: "6px" }}>(Verified)</span>}
+          </Form.Label>
           <Form.Control
             type="email"
             placeholder="Enter email ID"
             className="form-control custom-placeholder"
-            value={formData.email}
+            value={formData.email || initialEmail || ""}
             onChange={handleEmailChange}
-
-          //disabled={isminorDisabled || (flag.email ? false : formData.email?.length) }
+            disabled={isminorDisabled || Boolean(initialEmail)}
+            readOnly={Boolean(initialEmail)}
+            style={Boolean(initialEmail) ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" } : {}}
           />
           {errorValidate.email && (
             <Form.Text className="text-danger">{errorValidate.email}</Form.Text>

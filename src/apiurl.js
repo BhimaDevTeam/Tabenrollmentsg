@@ -1,12 +1,12 @@
 // ============================================================
-//  API URL CONFIG  —  change base URLs here only
+//  API URL CONFIG  -  change base URLs here only
 //  Hosted API : https://vrudhi.bhima.info/DraftEnrollmentApi
 // ============================================================
 
 const getEnv = () => {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
-    if (host.includes("suvarnagopura.com")) return "hosted";
+    if (host.includes("suvarnagopura.com") || host === "192.168.10.32" || host.includes("192.168.10.32")) return "hosted";
     if (host.includes("sharaanapps.co.in")) return "production";
     if (host.includes("bhima.info")) return "network";
     if (host === "localhost" || host === "127.0.0.1") return "local";
@@ -30,7 +30,7 @@ const BASE_CAMERA_URL = {
   production: "https://vrudhicameranew.sharaanapps.co.in",
 };
 
-// ── Singapore API Base Overrides ─────────────────
+// ── Singapore API Base Overrides ──────────────────────────────────────
 export const SG_COLLECTION_API = "https://suvarnagopura.com/DraftEnrollmentApi/api";
 export const SG_BaseURL = "https://suvarnagopura.com/DraftEnrollmentApi";
 export const SG_SCHEME_API = "https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/scheme-details";
@@ -53,14 +53,14 @@ export const getBaseCameraUrl = (countryOrCode) => {
   return BASE_CAMERA_URL[ENV];
 };
 
-// ── Main Draft Enrollment API base ────────────
+// ── Main Draft Enrollment API base ───────────────────────────────────
 export const COLLECTION_API = BASE_URLS[ENV];
-export const Drafttabledb = BASE_URLS[ENV];   // alias — kept for backward compatibility
+export const Drafttabledb = BASE_URLS[ENV];   // alias - kept for backward compatibility
 
-// ── Camera / Image base URL ───────────────────
+// ── Camera / Image base URL ──────────────────────────────────────────
 export const BaseURL = BASE_CAMERA_URL[ENV];
 
-// ── External / Third-party APIs ───────────────
+// ── External / Third-party APIs ──────────────────────────────────────
 export const CustomerMobileOTP = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api";
 export const Mobileverification = `${COLLECTION_API}/customer-full-details`;
 export const LegacyMobileverification = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails";
@@ -68,7 +68,7 @@ export const AadharAPI = "https://suvarnagopura.com/MagentoAPI/api_db.js/api";
 export const PincodeAPI = "https://api.postalpincode.in/pincode";
 export const DigiLockerAPI = "https://suvarnagopura.com/DIGILOCKER/api/digilocker";
 
-// ── New member creation (portal) — country-specific ──
+// ── New member creation (portal) - country-specific ──────────────────
 export const NEW_MEMBER_API_IN =
   "https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/newmember-creationTE";
 export const NEW_MEMBER_API_SG =
@@ -80,6 +80,6 @@ export const getNewMemberApiUrl = (countryOrCode) => {
   return isSg ? NEW_MEMBER_API_SG : NEW_MEMBER_API_IN;
 };
 
-// ── Singapore CRM — customer lookup by mobile / email ──
+// ── Singapore CRM - customer lookup by mobile / email ────────────────
 export const SG_SEARCH_CUSTOMER_API = "https://bgstaging.bhima.gold/crm/api_db.js/api/Searchcustomer";
 export const SG_CUSTOMER_DATA_CREATE_API = "https://bgstaging.bhima.gold/crm/api_db.js/api/Customerdatacreate";

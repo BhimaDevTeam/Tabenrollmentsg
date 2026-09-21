@@ -1304,7 +1304,6 @@ const Mypage = () => {
         imageUrl: finalImageUrl,
         inserted_By: "BY",
         documents: formattedDocuments,
-        Documents: formattedDocuments,
         TnxType: overrideMode || paymentmode,
         AadharNo: aadhar_No,
         SignRequestID: signRequestId,

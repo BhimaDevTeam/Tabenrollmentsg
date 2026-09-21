@@ -908,8 +908,16 @@ const Mypage = () => {
 
   const formatCrmImageUrl = (path) => {
     if (!path || typeof path !== "string") return "";
-    if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    return `https://bgstaging.bhima.gold/crm/${path.replace(/^\/+/, "")}`;
+    let trimmed = path.trim();
+    if (trimmed.includes("http://") || trimmed.includes("https://")) {
+      const idx = trimmed.lastIndexOf("http");
+      return trimmed.slice(idx);
+    }
+    const clean = trimmed.replace(/^\/+/, "");
+    if (clean.startsWith("crm/")) {
+      return `https://bgstaging.bhima.gold/${clean}`;
+    }
+    return `https://bgstaging.bhima.gold/crm/${clean}`;
   };
 
   const getDocTypeName = (doc, isSg) => {
@@ -1267,9 +1275,9 @@ const Mypage = () => {
         State: subscriberData.state || "",
         City: subscriberData.city || "", //CITY
         Pin_Code: subscriberData.pinCode || "",
-        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo) && subscriberData.mobileNo.trim() !== "")
+        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo) && subscriberData.mobileNo.trim() !== "" && subscriberData.mobileNo.trim() !== "-")
           ? subscriberData.mobileNo.trim()
-          : " ",
+          : "-",
         email_id: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         DateOf_Birth: subscriberData.dob || "",
         InstallmentAmount: installmentAmt,

@@ -52,7 +52,7 @@ const generateDummyProfileImage = () => {
 
 const resolveImageUrl = (url) => {
   if (!url || typeof url !== "string") return null;
-  const trimmed = url.trim();
+  let trimmed = url.trim();
   if (
     !trimmed ||
     trimmed === "IMG" ||
@@ -67,14 +67,18 @@ const resolveImageUrl = (url) => {
   if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
     return trimmed;
   }
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
+  if (trimmed.includes("http://") || trimmed.includes("https://")) {
+    const idx = trimmed.lastIndexOf("http");
+    return trimmed.slice(idx);
   }
-  if (trimmed.startsWith("Upload/") || trimmed.startsWith("/Upload/") || trimmed.includes("/")) {
-    const clean = trimmed.startsWith("/") ? trimmed.slice(1) : trimmed;
+  const clean = trimmed.replace(/^\/+/, "");
+  if (clean.startsWith("crm/")) {
     return `https://bgstaging.bhima.gold/${clean}`;
   }
-  return null;
+  if (clean.startsWith("Upload/")) {
+    return `https://bgstaging.bhima.gold/crm/${clean}`;
+  }
+  return `https://bgstaging.bhima.gold/${clean}`;
 };
 
 const CameraComponent = ({ getImageUrl, capturedImage }) => {

@@ -37,7 +37,7 @@ const Subscriberdetails = ({
   const cleanMobileNumber = (val) => {
     if (!val || typeof val !== "string") return "";
     const trimmed = val.trim();
-    if (trimmed.includes("@") || /[a-zA-Z]/.test(trimmed)) return "";
+    if (trimmed === "-" || trimmed === "NA" || trimmed === "null" || trimmed === "undefined" || trimmed.includes("@") || /[a-zA-Z]/.test(trimmed)) return "";
     return trimmed;
   };
 

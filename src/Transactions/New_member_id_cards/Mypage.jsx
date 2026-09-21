@@ -585,8 +585,32 @@ const Mypage = () => {
       return acc;
     }, {});
   };
+  const [isSavingCrmPhoto, setIsSavingCrmPhoto] = useState(false);
+
   const getImageUrl = (url) => {
     setImage(url);
+  };
+
+  const handleSaveCrmPhoto = async (photoToSave) => {
+    setIsSavingCrmPhoto(true);
+    try {
+      const targetPhoto = photoToSave || image;
+      if (!targetPhoto) {
+        toast.warning("Please capture or upload a photo first.");
+        return;
+      }
+      const crmRes = await saveCustomerToCrm(targetPhoto);
+      if (crmRes?.success || crmRes?.status || crmRes?.CustomerID) {
+        toast.success("Photo saved to CRM successfully!");
+      } else {
+        toast.info("Photo submitted to CRM.");
+      }
+    } catch (err) {
+      console.error("Failed to save photo to CRM:", err);
+      toast.error("Failed to save photo to CRM. Please try again.");
+    } finally {
+      setIsSavingCrmPhoto(false);
+    }
   };
   const handleDraft = async() => {
     //  event.preventDefault();
@@ -930,7 +954,7 @@ const Mypage = () => {
     return isSg ? "NRIC" : "PAN";
   };
 
-  const saveCustomerToCrm = async () => {
+  const saveCustomerToCrm = async (overridePhoto) => {
     try {
       const cleanBranch = getCleanBranch(branch || membershipData.branch);
       const isSg = selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN";
@@ -1004,7 +1028,7 @@ const Mypage = () => {
       }
 
       // Handle profile image / captured webcam image as document name "IMG"
-      const profilePhoto = image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
+      const profilePhoto = overridePhoto || image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
       if (profilePhoto) {
         const isRemoteProfile = typeof profilePhoto === "string" && (profilePhoto.startsWith("http") || profilePhoto.startsWith("Upload/"));
         docList.push({
@@ -1087,11 +1111,15 @@ const Mypage = () => {
       }
 
       console.log("[CRM Customerdatacreate] response:", crmResponse);
-      if (crmResponse?.success && crmResponse?.CustomerID) {
+      if ((crmResponse?.success || crmResponse?.status) && (crmResponse?.CustomerID || crmResponse?.CustomerDBID)) {
+        const savedImg = crmResponse?.data?.savedFiles?.find(f => f.fieldName === "images" || f.originalName === "IMG.png");
+        const newImgUrl = savedImg?.url || savedImg?.path;
+
         dispatch(setSelectedCustomerID({
           ...(selectedCustomerID || {}),
-          CustomerID: crmResponse.CustomerID,
-          CustomerDBID: crmResponse.CustomerDBID,
+          CustomerID: crmResponse.CustomerID || selectedCustomerID?.CustomerID,
+          CustomerDBID: crmResponse.CustomerDBID || selectedCustomerID?.CustomerDBID,
+          ImageURL: newImgUrl || (typeof profilePhoto === "string" && profilePhoto.startsWith("http") ? profilePhoto : selectedCustomerID?.ImageURL),
           Documents: crmResponse.Documents || selectedCustomerID?.Documents || [],
         }));
       }
@@ -2149,7 +2177,13 @@ const Mypage = () => {
           </AccordionSummary>
 
           <AccordionDetails>
-            <WebCamComponent getImageUrl={getImageUrl} capturedImage={image} aadharVerified={aadharverified} />
+            <WebCamComponent
+              getImageUrl={getImageUrl}
+              capturedImage={image}
+              aadharVerified={aadharverified}
+              onSaveCrmPhoto={handleSaveCrmPhoto}
+              isSavingCrmPhoto={isSavingCrmPhoto}
+            />
           </AccordionDetails>
         </Accordion>
       </Box>

@@ -18,28 +18,38 @@ const ENV = getEnv();
 
 const BASE_URLS = {
   local: "http://localhost:9000/api",
-  hosted: "https://vrudhi.bhima.info/DraftEnrollmentApi/api",
+  hosted: "https://suvarnagopura.com/DraftEnrollmentApi/api",
   network: "https://vrudhi.bhima.info/DraftEnrollmentApi/api",
   production: "https://draftenrollment.sharaanapps.co.in/api",
 };
 
 const BASE_CAMERA_URL = {
   local: "http://localhost:9000",
-  hosted: "https://vrudhi.bhima.info/DraftEnrollmentApi",
+  hosted: "https://suvarnagopura.com/DraftEnrollmentApi",
   network: "https://vrudhi.bhima.info/DraftEnrollmentApi",
   production: "https://vrudhicameranew.sharaanapps.co.in",
 };
 
 // ── Singapore API Base Overrides ─────────────────
-export const SG_COLLECTION_API = BASE_URLS[ENV];
-export const SG_BaseURL = BASE_CAMERA_URL[ENV];
+export const SG_COLLECTION_API = "https://suvarnagopura.com/DraftEnrollmentApi/api";
+export const SG_BaseURL = "https://suvarnagopura.com/DraftEnrollmentApi";
 export const SG_SCHEME_API = "https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/scheme-details";
 
 export const getCollectionApiUrl = (countryOrCode) => {
+  const v = String(countryOrCode || "").toLowerCase();
+  const isSg = v === "singapore" || v === "sg" || v === "sgd";
+  if (isSg) {
+    return SG_COLLECTION_API;
+  }
   return BASE_URLS[ENV];
 };
 
 export const getBaseCameraUrl = (countryOrCode) => {
+  const v = String(countryOrCode || "").toLowerCase();
+  const isSg = v === "singapore" || v === "sg" || v === "sgd";
+  if (isSg) {
+    return SG_BaseURL;
+  }
   return BASE_CAMERA_URL[ENV];
 };
 

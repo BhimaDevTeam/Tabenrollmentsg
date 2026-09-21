@@ -906,6 +906,12 @@ const Mypage = () => {
     return dateVal;
   };
 
+  const formatCrmImageUrl = (path) => {
+    if (!path || typeof path !== "string") return "";
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return `https://bgstaging.bhima.gold/crm/${path.replace(/^\/+/, "")}`;
+  };
+
   const getDocTypeName = (doc, isSg) => {
     if (doc.Type) {
       const t = String(doc.Type).trim();
@@ -1090,15 +1096,25 @@ const Mypage = () => {
 
       console.log("[CRM Customerdatacreate] response:", crmResponse);
       if ((crmResponse?.success || crmResponse?.status) && (crmResponse?.CustomerID || crmResponse?.CustomerDBID)) {
+        const crmDocList = (crmResponse.Documents || []).map((d) => {
+          const rawPath = d.ImagePath || d.imagePath || "";
+          const fullUrl = formatCrmImageUrl(rawPath);
+          return {
+            ...d,
+            ImagePath: fullUrl,
+            imagePath: fullUrl,
+          };
+        });
+        const imgDoc = crmDocList.find((d) => d.Type === "IMG" || d.Number === "IMG");
         const savedImg = crmResponse?.data?.savedFiles?.find(f => f.fieldName === "images" || f.originalName === "IMG.png");
-        const newImgUrl = savedImg?.url || savedImg?.path;
+        const newImgUrl = imgDoc?.ImagePath || savedImg?.url || (typeof profilePhoto === "string" && profilePhoto.startsWith("http") ? profilePhoto : selectedCustomerID?.ImageURL);
 
         dispatch(setSelectedCustomerID({
           ...(selectedCustomerID || {}),
           CustomerID: crmResponse.CustomerID || selectedCustomerID?.CustomerID,
           CustomerDBID: crmResponse.CustomerDBID || selectedCustomerID?.CustomerDBID,
-          ImageURL: newImgUrl || (typeof profilePhoto === "string" && profilePhoto.startsWith("http") ? profilePhoto : selectedCustomerID?.ImageURL),
-          Documents: crmResponse.Documents || selectedCustomerID?.Documents || [],
+          ImageURL: newImgUrl,
+          Documents: crmDocList.length > 0 ? crmDocList : (selectedCustomerID?.Documents || []),
         }));
       }
       return crmResponse;
@@ -1111,7 +1127,12 @@ const Mypage = () => {
   const saveDraft = async (overrideMode) => {
     // alert("in savdraaft called 2")
     try {
-      const hasIdentifier = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@")) || subscriberData.email || phone;
+      const hasIdentifier = Boolean(
+        (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo)) ||
+        subscriberData.email ||
+        (phone && phone.trim() !== "") ||
+        subscriberData.subscriberName
+      );
       if (!hasIdentifier) {
         navigate(`/?branch=${localStorage.getItem("encodedBranch") || btoa(localStorage.getItem("decodedBranch") || "KRM")}`);
         return;
@@ -1136,6 +1157,19 @@ const Mypage = () => {
 
       setIsSaving(true);
       setFlag(true);
+
+      // STEP 1: Call CDP / CRM Customerdatacreate API FIRST before draft save
+      let crmResponse = null;
+      try {
+        crmResponse = await saveCustomerToCrm();
+        console.log("[SaveDraft] CRM Customerdatacreate response:", crmResponse);
+        if (crmResponse?.success) {
+          toast.success("Customer saved in CRM successfully");
+        }
+      } catch (crmErr) {
+        console.warn("[SaveDraft] saveCustomerToCrm failed (continuing):", crmErr);
+      }
+
       let add1 = subscriberData.address1 || "";
       let add2 = subscriberData.address2 || "";
 
@@ -1145,7 +1179,7 @@ const Mypage = () => {
       const isaadharVerified = aadharverified || 0;
       const aadhar_No = aadharNo ? aadharNo : null;
       const cleanBranch = getCleanBranch(branch || membershipData.branch);
-      const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@"))
+      const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
         ? subscriberData.mobileNo
         : (subscriberData.email || (phone && phone.includes("@") ? phone : "") || "user");
       // Reuse existing SignRequestID when available (avoid regenerating PDF on every Save)
@@ -1187,11 +1221,41 @@ const Mypage = () => {
         }
       }
 
+      // STEP 2: Extract CRM image and documents with full https://bgstaging.bhima.gold/crm/ paths
+      const crmDocs = crmResponse?.Documents || crmResponse?.documents || crmResponse?.data?.Documents || [];
+      const imgDoc = Array.isArray(crmDocs)
+        ? crmDocs.find((d) => d.Type === "IMG" || d.Number === "IMG")
+        : null;
+
+      const finalImageUrl = imgDoc?.ImagePath
+        ? formatCrmImageUrl(imgDoc.ImagePath)
+        : (image || "");
+
+      const formattedDocuments = Array.isArray(crmDocs) && crmDocs.length > 0
+        ? crmDocs.map((d) => ({
+            ...d,
+            DocumentID: d.DocumentID,
+            documentTypeId: d.DocumentID || (d.Type === "PAN" ? 25 : d.Type === "aadhar" ? 29 : 0),
+            documentNo: d.Number || d.documentNo || "",
+            Type: d.Type || "",
+            Number: d.Number || "",
+            ImagePath: formatCrmImageUrl(d.ImagePath),
+            imagePath: formatCrmImageUrl(d.ImagePath),
+            IsVerified: Boolean(d.IsVerified),
+          }))
+        : (alldocs || []).map((d) => ({
+            ...d,
+            ImagePath: formatCrmImageUrl(d.ImagePath || d.imagePath),
+            imagePath: formatCrmImageUrl(d.ImagePath || d.imagePath),
+          }));
+
       const draftData = {
         ...(draftIDData ? { DraftID: draftIDData } : {}),
-        country: selectedCountry || "India",
+        CustomerID: crmResponse?.CustomerID || selectedCustomerID?.CustomerID || "",
+        CustomerDBID: crmResponse?.CustomerDBID || selectedCustomerID?.CustomerDBID || null,
+        country: selectedCountry || "Singapore",
         countryCode: selectedCountry === "Singapore" ? "SG" : "IN",
-        Country: selectedCountry || "India",
+        Country: selectedCountry || "Singapore",
         Branch: cleanBranch,
         Scheme: membershipData.selectedSchemeCode || "",
         Cust_Name: subscriberData.subscriberName || "",
@@ -1203,7 +1267,9 @@ const Mypage = () => {
         State: subscriberData.state || "",
         City: subscriberData.city || "", //CITY
         Pin_Code: subscriberData.pinCode || "",
-        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@")) ? subscriberData.mobileNo : "",
+        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
+          ? subscriberData.mobileNo
+          : "",
         email_id: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         DateOf_Birth: subscriberData.dob || "",
         InstallmentAmount: installmentAmt,
@@ -1221,9 +1287,10 @@ const Mypage = () => {
         MembershipNo: membershipData.membershipNo || "",
         IsAadarVerified: isaadharVerified,
         IsCancelFlag: "N",
-        imageUrl: image,
+        imageUrl: finalImageUrl,
         inserted_By: "BY",
-        documents: alldocs,
+        documents: formattedDocuments,
+        Documents: formattedDocuments,
         TnxType: overrideMode || paymentmode,
         AadharNo: aadhar_No,
         SignRequestID: signRequestId,
@@ -1240,7 +1307,7 @@ const Mypage = () => {
       const countryCode = countryName === "Singapore" ? "SG" : "IN";
       const draftApiBase = getCollectionApiUrl(countryName);
 
-      // 1) Always save draft in DraftEnrollmentApi (needs DraftID)
+      // STEP 3: Always save draft in DraftEnrollmentApi (needs DraftID)
       const response = await axios.post(
         `${draftApiBase}/draftenrollment`,
         draftData,
@@ -1335,16 +1402,6 @@ const Mypage = () => {
             .then((r) => r.json())
             .then((d) => console.log("[CRM] upload-to-crm after draft save:", d))
             .catch((e) => console.warn("[CRM] Upload failed (non-blocking):", e));
-
-          // Call CRM Customerdatacreate API
-          saveCustomerToCrm()
-            .then((crmRes) => {
-              console.log("[CRM Customerdatacreate] save response:", crmRes);
-              if (crmRes?.success) {
-                toast.success("Customer saved in CRM successfully");
-              }
-            })
-            .catch((e) => console.warn("[CRM Customerdatacreate] failed (non-blocking):", e));
         }
 
         setIsDraftSaved(true);

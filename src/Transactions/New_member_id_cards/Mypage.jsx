@@ -502,11 +502,11 @@ const Mypage = () => {
     const rawBranch = urlParams.get("branch") || urlParams.get("BRANCH") || branch || membershipData?.branch || localStorage.getItem("decodedBranch") || "KRM";
     const cleanBranch = String(rawBranch).toUpperCase().trim();
     const isSg = cleanBranch === "LI" || cleanBranch === "LN" || (selectedCountry === "Singapore" && cleanBranch !== "KRM");
-    if (!nomineeData.nomineephoneno) {
+    if (!isSg && !nomineeData.nomineephoneno) {
       errors.nomineephoneno = "Nominee Phone No is required";
-    } else if (isSg && !/^\d{8}$/.test(nomineeData.nomineephoneno)) {
+    } else if (nomineeData.nomineephoneno && isSg && !/^\d{8}$/.test(nomineeData.nomineephoneno)) {
       errors.nomineephoneno = "Nominee phone must be 8 digits";
-    } else if (!isSg && !/^\d{10}$/.test(nomineeData.nomineephoneno)) {
+    } else if (nomineeData.nomineephoneno && !isSg && !/^\d{10}$/.test(nomineeData.nomineephoneno)) {
       errors.nomineephoneno = "Nominee phone must be 10 digits";
     }
     seterrorValidate(errors);
@@ -1267,9 +1267,9 @@ const Mypage = () => {
         State: subscriberData.state || "",
         City: subscriberData.city || "", //CITY
         Pin_Code: subscriberData.pinCode || "",
-        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
-          ? subscriberData.mobileNo
-          : "",
+        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo) && subscriberData.mobileNo.trim() !== "")
+          ? subscriberData.mobileNo.trim()
+          : " ",
         email_id: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         DateOf_Birth: subscriberData.dob || "",
         InstallmentAmount: installmentAmt,

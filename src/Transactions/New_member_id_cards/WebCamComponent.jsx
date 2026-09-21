@@ -63,7 +63,8 @@ const resolveImageUrl = (url) => {
   ) {
     return null;
   }
-  if (trimmed.startsWith("data:image/") || trimmed.startsWith("blob:")) {
+  // Any data URL or blob URL is a valid local image
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
     return trimmed;
   }
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
@@ -122,14 +123,11 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
     }
   }, [selectedCustomerID, getImageUrl]);
 
-  // Show eKYC Aadhaar photo when capturedImage changes (from parent)
+  // Show eKYC Aadhaar photo or external photo when capturedImage changes (from parent)
   useEffect(() => {
-    if (capturedImage && (capturedImage.startsWith("data:image") || capturedImage.startsWith("http"))) {
+    if (capturedImage) {
       const validUrl = resolveImageUrl(capturedImage);
-      if (validUrl) {
-        if (currentImage && currentImage !== validUrl) {
-          setPreviousImage(currentImage);
-        }
+      if (validUrl && validUrl !== currentImage) {
         setCurrentImage(validUrl);
         setImageError(false);
         setIsCameraOpen(false);
@@ -216,9 +214,12 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64 = event.target.result;
+      const base64 = event.target?.result;
+      if (!base64) return;
+
       if (currentImage && currentImage !== base64) {
         setPreviousImage(currentImage);
       }
@@ -227,6 +228,9 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
       stopCamera();
       setIsCameraOpen(false);
       if (getImageUrl) getImageUrl(base64);
+    };
+    reader.onerror = (err) => {
+      console.error("FileReader error:", err);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -256,7 +260,10 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
     return () => stopCamera();
   }, []);
 
-  const hasValidDisplayImage = Boolean(currentImage && !imageError);
+  const hasValidDisplayImage = Boolean(
+    currentImage &&
+      (!imageError || (typeof currentImage === "string" && (currentImage.startsWith("data:") || currentImage.startsWith("blob:"))))
+  );
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 animate-fade-in" style={{ padding: "10px" }}>
@@ -344,24 +351,36 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
       {/* === Photo Display & Actions (when camera is not streaming) === */}
       {!isCameraOpen && hasValidDisplayImage && (
         <div style={{ textAlign: "center", width: "100%" }}>
-          <img
-            src={currentImage}
-            alt="Customer Profile"
-            onError={() => {
-              console.warn("Failed to load photo:", currentImage);
-              setImageError(true);
-            }}
+          <div
             style={{
-              width: "100%",
-              maxWidth: "360px",
-              maxHeight: "360px",
-              objectFit: "contain",
+              display: "inline-block",
               borderRadius: "8px",
-              marginTop: "10px",
+              padding: "4px",
               border: "2px solid #CD9A50",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+              boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
+              background: "#ffffff",
+              maxWidth: "360px"
             }}
-          />
+          >
+            <img
+              src={currentImage}
+              alt="Customer Profile"
+              onError={() => {
+                if (typeof currentImage === "string" && !currentImage.startsWith("data:") && !currentImage.startsWith("blob:")) {
+                  console.warn("Failed to load remote photo:", currentImage);
+                  setImageError(true);
+                }
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                maxWidth: "340px",
+                maxHeight: "340px",
+                objectFit: "contain",
+                borderRadius: "6px"
+              }}
+            />
+          </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "14px" }}>
             <Button

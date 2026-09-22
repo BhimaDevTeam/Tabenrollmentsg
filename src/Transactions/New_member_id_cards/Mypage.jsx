@@ -41,6 +41,35 @@ import EkycQRModal from "./EkycQRModal";
 import Paymentgateway from "./Paymentgateway";
 import Header from "../../header";
 
+// Document ID mapping based on database LovName:
+// 24: Scheme Opening Document
+// 25: NRIC Card
+// 26: Driving License
+// 27: E-Pass(FIN Number)
+// 28: Passport
+// 29: Aadhar Card
+// 30: Others
+// 31: Aadhar Back
+const resolveDocumentId = (doc) => {
+  if (!doc) return 30;
+  const directId = Number(doc.DocumentID ?? doc.documentTypeId ?? doc.DocumentTypeID ?? doc.docType ?? doc.id ?? doc.ID);
+  if (directId && [24, 25, 26, 27, 28, 29, 30, 31].includes(directId)) {
+    return directId;
+  }
+  const rawType = String(doc.Type || doc.type || doc.name || doc.Name || doc.LovName || doc.lovName || "").toUpperCase().trim();
+  if (rawType.includes("SCHEME") || rawType === "SOD" || rawType === "NEF") return 24;
+  if (rawType.includes("NRIC") || rawType === "PAN" || rawType.includes("PAN CARD")) return 25;
+  if (rawType.includes("DRIV") || rawType.includes("LICEN") || rawType === "DRI" || rawType === "DL") return 26;
+  if (rawType.includes("E-PASS") || rawType.includes("FIN") || rawType.includes("VOTER") || rawType === "VOT") return 27;
+  if (rawType.includes("PASS") || rawType === "PAS") return 28;
+  if (rawType.includes("BACK") || rawType === "ADB") return 31;
+  if (rawType.includes("AAD") || rawType.includes("UID")) return 29;
+  if (rawType.includes("IMG") || rawType.includes("PHOTO") || rawType.includes("IMAGE") || rawType.includes("OTHER") || rawType === "OTH") return 30;
+
+  if (directId && !isNaN(directId) && directId > 0) return directId;
+  return 30;
+};
+
 // import { ErrorSharp } from '@mui/icons-material';
 const Mypage = () => {
   const dispatch = useDispatch();
@@ -144,18 +173,18 @@ const Mypage = () => {
     if (ekycData.permanentAddress) setPermanentAddress(ekycData.permanentAddress);
     if (ekycData.aadhaarDoc) {
       setUploadedDocs((prev) => {
-        return [...prev.filter((d) => d.Type !== "AAD"), ekycData.aadhaarDoc];
+        return [...prev.filter((d) => d.Type !== "AAD"), { ...ekycData.aadhaarDoc, DocumentID: 29, documentTypeId: 29, Type: "AAD" }];
       });
       setAllDocs((prev) => {
-        return [...prev.filter((d) => d.documentTypeId !== 29), { documentTypeId: 29, imagePath: ekycData.aadhaarDoc.ImagePath, documentNo: ekycData.aadhaarDoc.Name }];
+        return [...prev.filter((d) => d.documentTypeId !== 29), { DocumentID: 29, documentTypeId: 29, imagePath: ekycData.aadhaarDoc.ImagePath, documentNo: ekycData.aadhaarDoc.Name, Type: "AAD" }];
       });
     }
     if (ekycData.panDoc) {
       setUploadedDocs((prev) => {
-        return [...prev.filter((d) => d.Type !== "PAN"), ekycData.panDoc];
+        return [...prev.filter((d) => d.Type !== "PAN"), { ...ekycData.panDoc, DocumentID: 25, documentTypeId: 25, Type: "PAN" }];
       });
       setAllDocs((prev) => {
-        return [...prev.filter((d) => d.documentTypeId !== 25), { documentTypeId: 25, imagePath: ekycData.panDoc.ImagePath || "", documentNo: ekycData.panDoc.Name }];
+        return [...prev.filter((d) => d.documentTypeId !== 25), { DocumentID: 25, documentTypeId: 25, imagePath: ekycData.panDoc.ImagePath || "", documentNo: ekycData.panDoc.Name, Type: "PAN" }];
       });
     }
   }, []);
@@ -353,13 +382,16 @@ const Mypage = () => {
   //UPLOAD DOCUMENT
   const docObjTypeId = useMemo(() => {
     return {
-      29: "AAD",
-      25: "PAN",
+      24: "SOD",
+      25: selectedCountry === "Singapore" ? "NRIC" : "PAN",
       26: "DRI",
-      27: "VOT",
+      27: selectedCountry === "Singapore" ? "FIN" : "VOT",
       28: "PAS",
+      29: "AAD",
+      30: "OTH",
+      31: "ADB",
     };
-  }, []);
+  }, [selectedCountry]);
 
 
   const modalStyle = {
@@ -707,27 +739,36 @@ const Mypage = () => {
 
     if (rawDocs.length > 0) {
       const typeToIdMap = {
-        AAD: 29,
-        AADHAR: 29,
-        AADHAAR: 29,
+        SOD: 24,
+        NEF: 24,
         PAN: 25,
         NRIC: 25,
         DRI: 26,
-        VOT: 27,
+        DL: 26,
         FIN: 27,
+        VOT: 27,
         PAS: 28,
+        PASSPORT: 28,
+        AAD: 29,
+        AADHAR: 29,
+        AADHAAR: 29,
+        OTH: 30,
+        OTHERS: 30,
         IMG: 30,
-        NEF: 24,
+        PHOTO: 30,
+        IMAGE: 30,
+        ADB: 31,
       };
 
       const typeIdToCodeMap = {
-        29: "AAD",
-        25: "PAN",
+        24: "SOD",
+        25: selectedCountry === "Singapore" ? "NRIC" : "PAN",
         26: "DRI",
-        27: "VOT",
+        27: selectedCountry === "Singapore" ? "FIN" : "VOT",
         28: "PAS",
-        30: "IMG",
-        24: "NEF",
+        29: "AAD",
+        30: "OTH",
+        31: "ADB",
       };
 
       const uniqueDocs = [];
@@ -739,26 +780,34 @@ const Mypage = () => {
         const upperType = rawType.toUpperCase();
 
         let typeId = 0;
-        if (doc.DocumentTypeID || doc.documentTypeId) {
+        if (doc.DocumentID && Number(doc.DocumentID) > 0) {
+          typeId = Number(doc.DocumentID);
+        } else if (doc.DocumentTypeID || doc.documentTypeId) {
           typeId = Number(doc.DocumentTypeID || doc.documentTypeId);
         } else if (typeToIdMap[upperType]) {
           typeId = typeToIdMap[upperType];
         } else if (!isNaN(rawType) && rawType !== "") {
           typeId = Number(rawType);
-        } else if (upperType.includes("AAD")) {
-          typeId = 29;
-        } else if (upperType.includes("PAN")) {
-          typeId = 25;
+        } else if (upperType.includes("SCHEME")) {
+          typeId = 24;
         } else if (upperType.includes("NRIC")) {
+          typeId = 25;
+        } else if (upperType.includes("PAN")) {
           typeId = 25;
         } else if (upperType.includes("DRI") || upperType.includes("LICEN")) {
           typeId = 26;
+        } else if (upperType.includes("FIN") || upperType.includes("E-PASS")) {
+          typeId = 27;
         } else if (upperType.includes("PAS")) {
           typeId = 28;
+        } else if (upperType.includes("BACK") || upperType.includes("ADB")) {
+          typeId = 31;
+        } else if (upperType.includes("AAD")) {
+          typeId = 29;
         } else if (upperType.includes("IMG") || upperType.includes("PHOTO")) {
           typeId = 30;
         } else {
-          typeId = 29;
+          typeId = 30;
         }
 
         const typeCode = rawType || typeIdToCodeMap[typeId] || "Document";
@@ -781,6 +830,8 @@ const Mypage = () => {
           seenKeys.add(dedupKey);
           uniqueDocs.push({
             ...doc,
+            DocumentID: typeId,
+            documentTypeId: typeId,
             Type: typeCode,
             type: typeCode,
             ImagePath: url,
@@ -794,7 +845,6 @@ const Mypage = () => {
             Number: docNo,
             number: docNo,
             DocumentDescription: docNo,
-            documentTypeId: typeId,
             IsVerified: Boolean(doc.IsVerified || doc.isVerified),
           });
         }
@@ -814,13 +864,15 @@ const Mypage = () => {
   const handleFileUpload = (data) => {
     setUploadedFile(data); // Store the document data
     if (data) {
-      const docTypeMapped = docObjTypeId[data.docType] || data.typeCode || (data.docType == 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") : "Document");
+      const docId = Number(data.DocumentID || data.docType || data.documentTypeId || 0);
+      const docTypeMapped = docObjTypeId[docId] || data.typeCode || (docId === 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") : (docId === 26 ? "DRI" : docId === 27 ? (selectedCountry === "Singapore" ? "FIN" : "VOT") : docId === 28 ? "PAS" : docId === 29 ? "AAD" : docId === 31 ? "ADB" : docId === 24 ? "SOD" : "OTH"));
       const docNo = data.docNumber;
 
       setAllDocs((prevDocs) => [
         ...prevDocs,
         {
-          documentTypeId: Number(data.docType),
+          DocumentID: docId,
+          documentTypeId: docId,
           imagePath: data.documentData,
           ImagePath: data.documentData,
           ImageURL: data.documentData,
@@ -834,6 +886,8 @@ const Mypage = () => {
       ]);
 
       const docObj = {
+        DocumentID: docId,
+        documentTypeId: docId,
         Name: docNo,
         documentNo: docNo,
         Number: docNo,
@@ -841,7 +895,6 @@ const Mypage = () => {
         ImagePath: data.documentData,
         ImageURL: data.documentData,
         imagePath: data.documentData,
-        documentTypeId: Number(data.docType),
         file: data.file,
       };
 
@@ -1245,23 +1298,66 @@ const Mypage = () => {
         ? formatCrmImageUrl(imgDoc.ImagePath)
         : (image || "");
 
-      const formattedDocuments = Array.isArray(crmDocs) && crmDocs.length > 0
-        ? crmDocs.map((d) => ({
-            ...d,
-            DocumentID: d.DocumentID,
-            documentTypeId: d.DocumentID || (d.Type === "PAN" ? 25 : d.Type === "aadhar" ? 29 : 0),
-            documentNo: d.Number || d.documentNo || "",
-            Type: d.Type || "",
-            Number: d.Number || "",
-            ImagePath: formatCrmImageUrl(d.ImagePath),
-            imagePath: formatCrmImageUrl(d.ImagePath),
-            IsVerified: Boolean(d.IsVerified),
-          }))
-        : (alldocs || []).map((d) => ({
-            ...d,
-            ImagePath: formatCrmImageUrl(d.ImagePath || d.imagePath),
-            imagePath: formatCrmImageUrl(d.ImagePath || d.imagePath),
-          }));
+      const combinedDocs = [];
+      const seenDocKeys = new Set();
+      // 1. Add uploadedDocs (newly uploaded documents)
+      (uploadedDocs || []).forEach((d) => {
+        const id = resolveDocumentId(d);
+        const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
+        const key = `${id}_${docNo}`;
+        if (!seenDocKeys.has(key)) {
+          seenDocKeys.add(key);
+          combinedDocs.push(d);
+        }
+      });
+      // 2. Add CRM docs if not already present
+      (Array.isArray(crmDocs) ? crmDocs : []).forEach((d) => {
+        const id = resolveDocumentId(d);
+        const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
+        const key = `${id}_${docNo}`;
+        if (!seenDocKeys.has(key)) {
+          seenDocKeys.add(key);
+          combinedDocs.push(d);
+        }
+      });
+      // 3. Add any from alldocs if not already present
+      (alldocs || []).forEach((d) => {
+        const id = resolveDocumentId(d);
+        const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
+        const key = `${id}_${docNo}`;
+        if (!seenDocKeys.has(key)) {
+          seenDocKeys.add(key);
+          combinedDocs.push(d);
+        }
+      });
+
+      const formattedDocuments = combinedDocs.map((d) => {
+        const resolvedId = resolveDocumentId(d);
+        const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.number || d.Name || d.name || "").trim();
+        const imgPath = formatCrmImageUrl(d.ImagePath || d.imagePath || d.ImageURL || d.imageUrl || "");
+        const defaultType =
+          resolvedId === 24 ? "SOD" :
+          resolvedId === 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") :
+          resolvedId === 26 ? "DRI" :
+          resolvedId === 27 ? (selectedCountry === "Singapore" ? "FIN" : "VOT") :
+          resolvedId === 28 ? "PAS" :
+          resolvedId === 29 ? "AAD" :
+          resolvedId === 30 ? "OTH" :
+          resolvedId === 31 ? "ADB" : "OTH";
+        const docType = d.Type || d.type || defaultType;
+
+        return {
+          ...d,
+          DocumentID: resolvedId,
+          documentTypeId: resolvedId,
+          documentNo: docNo,
+          Number: docNo,
+          Type: docType,
+          ImagePath: imgPath,
+          imagePath: imgPath,
+          IsVerified: Boolean(d.IsVerified || d.isVerified),
+        };
+      });
 
       const draftData = {
         ...(draftIDData ? { DraftID: draftIDData } : {}),
@@ -1304,6 +1400,7 @@ const Mypage = () => {
         imageUrl: finalImageUrl,
         inserted_By: "BY",
         documents: formattedDocuments,
+        Documents: formattedDocuments,
         TnxType: overrideMode || paymentmode,
         AadharNo: aadhar_No,
         SignRequestID: signRequestId,
@@ -1686,7 +1783,7 @@ const Mypage = () => {
 
     // Check if any address proof document is uploaded
     const isAddressUploaded = uploadedDocs.some(
-      (doc) => ["AAD", "DRI", "VOT", "PAS", "PAN", "NRIC"].includes(doc.Type)
+      (doc) => (doc.DocumentID && Number(doc.DocumentID) > 0) || ["AAD", "DRI", "VOT", "PAS", "PAN", "NRIC", "FIN", "SOD", "OTH", "ADB"].includes(doc.Type)
     );
 
     console.log("uploadedDocs", uploadedDocs);

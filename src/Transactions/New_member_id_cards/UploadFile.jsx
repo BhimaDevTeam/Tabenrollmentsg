@@ -41,44 +41,60 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
   );
 
   const documentTypes = useMemo(() => {
+    const typeCodeMap = {
+      24: ["SOD", "NEF"],
+      25: ["NRIC", "PAN"],
+      26: ["DRI"],
+      27: ["FIN", "VOT"],
+      28: ["PAS"],
+      29: ["AAD"],
+      30: ["OTH", "IMG"],
+      31: ["ADB"],
+    };
+
     if (isSingapore && Array.isArray(sgDocList) && sgDocList.length > 0) {
-      const typeCodeMap = {
-        25: ["NRIC", "PAN"],
-        26: ["DRI"],
-        27: ["FIN", "VOT"],
-        28: ["PAS"],
-        30: ["OTH", "IMG"],
-      };
-      return sgDocList.map((item) => ({
-        id: item.id,
-        name: item.LovName,
-        typeCode: typeCodeMap[item.id] || [String(item.id)],
-      }));
+      return sgDocList.map((item) => {
+        const itemId = Number(item.id ?? item.ID ?? item.DocumentID ?? item.documentTypeId);
+        return {
+          id: itemId,
+          name: item.LovName || item.lovName || item.name || item.Name,
+          typeCode: typeCodeMap[itemId] || [String(itemId)],
+        };
+      });
     }
 
     if (isSingapore) {
       return [
+        { id: 24, name: "Scheme Opening Document", typeCode: ["SOD", "NEF"] },
         { id: 25, name: "NRIC Card", typeCode: ["NRIC", "PAN"] },
         { id: 26, name: "Driving License", typeCode: ["DRI"] },
         { id: 27, name: "E-Pass(FIN Number)", typeCode: ["FIN", "VOT"] },
         { id: 28, name: "Passport", typeCode: ["PAS"] },
-        { id: 30, name: "Others", typeCode: ["OTH"] },
+        { id: 29, name: "Aadhar Card", typeCode: ["AAD"] },
+        { id: 30, name: "Others", typeCode: ["OTH", "IMG"] },
+        { id: 31, name: "Aadhar Back", typeCode: ["ADB"] },
       ];
     }
 
     return [
+      { id: 24, name: "Scheme Opening Document", typeCode: ["SOD", "NEF"] },
       { id: 25, name: "PAN Card", typeCode: ["PAN"] },
-      { id: 29, name: "Aadhar Card", typeCode: ["AAD"] },
       { id: 26, name: "Driving License", typeCode: ["DRI"] },
       { id: 27, name: "Voter ID Card", typeCode: ["VOT"] },
       { id: 28, name: "Passport", typeCode: ["PAS"] },
-      { id: 24, name: "Scheme Opening Document", typeCode: ["NEF"] },
-      { id: 30, name: "Profile Image", typeCode: ["IMG"] },
+      { id: 29, name: "Aadhar Card", typeCode: ["AAD"] },
+      { id: 30, name: "Profile Image", typeCode: ["IMG", "OTH"] },
       { id: 31, name: "Aadhar Back", typeCode: ["ADB"] },
     ];
   }, [isSingapore, sgDocList]);
 
   const documentConfig = useMemo(() => ({
+    24: {
+      pattern: /^.+$/,
+      maxLength: 30,
+      errorMessage: 'Please enter valid document details.',
+      type: 'SOD',
+    },
     25: isSingapore ? {
       pattern: /^[STFGM][0-9]{7}[A-Z]$/i,
       maxLength: 9,
@@ -125,19 +141,27 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
       errorMessage: 'Please enter valid document details.',
       type: 'OTH',
     },
+    31: {
+      pattern: /^[0-9]{12}$/,
+      maxLength: 12,
+      errorMessage: 'Please enter a valid 12-digit Aadhaar number.',
+      type: 'ADB',
+    },
   }), [isSingapore]);
 
   const verifyDocObj = useMemo(() => ({
-    AAD: 29,
+    SOD: 24,
+    NEF: 24,
     PAN: 25,
     NRIC: 25,
     DRI: 26,
     VOT: 27,
     FIN: 27,
     PAS: 28,
-    NEF: 24,
+    AAD: 29,
     IMG: 30,
     OTH: 30,
+    ADB: 31,
   }), []);
 
   const getMembershipNumber = () => {
@@ -196,12 +220,15 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
     }
 
     if (upperType === "NRIC") return "NRIC Card";
+    if (upperType === "SOD" || upperType === "NEF" || typeId === 24) return "Scheme Opening Document";
     if (upperType === "AAD" || upperType === "AADHAR" || upperType === "AADHAAR" || typeId === 29) return "Aadhaar Card";
+    if (upperType === "ADB" || typeId === 31) return "Aadhar Back";
     if (upperType === "DRI" || typeId === 26) return "Driving License";
     if (upperType === "FIN") return "E-Pass (FIN Number)";
     if (upperType === "VOT" || (typeId === 27 && !isSingapore)) return "Voter ID Card";
     if (typeId === 27 && isSingapore) return "E-Pass (FIN Number)";
     if (upperType === "PAS" || typeId === 28) return "Passport";
+    if (upperType === "OTH" || (typeId === 30 && isSingapore)) return "Others";
     if (upperType === "IMG" || typeId === 30) return "Profile Image";
 
     const found = documentTypes.find(d => 
@@ -320,7 +347,9 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
       onFileUpload({
         file,
         documentData,
-        docType,
+        docType: Number(docType),
+        DocumentID: Number(docType),
+        documentTypeId: Number(docType),
         docNumber,
         verifyDocObj,
         typeCode,

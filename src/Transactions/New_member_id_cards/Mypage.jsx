@@ -1102,24 +1102,37 @@ const Mypage = () => {
         seenDocNums.add(`aadhar_${String(aadharNo).trim()}`);
       }
 
-      // Profile photo goes out as Documents Type IMG plus the file on form field "images".
+      // Profile photo: same form-data as Postman — Documents Type IMG with ImagePath "",
+      // and the photo file on the images field next to the PAN/NRIC file.
       const profilePhoto = overridePhoto || image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
-      const profileFile = await profilePhotoToFile(profilePhoto);
-      const remoteProfile = typeof profilePhoto === "string" && (profilePhoto.startsWith("http") || profilePhoto.startsWith("Upload/"))
-        ? profilePhoto
-        : "";
-      if (profileFile || remoteProfile) {
+      let profilePath = typeof profilePhoto === "string" ? profilePhoto.trim() : "";
+      const embeddedData = profilePath.indexOf("data:image");
+      if (embeddedData >= 0) profilePath = profilePath.slice(embeddedData);
+
+      let profileFile = null;
+      if (profilePhoto instanceof File) {
+        profileFile = new File([profilePhoto], "IMG.png", { type: profilePhoto.type || "image/png" });
+      } else if (profilePhoto instanceof Blob) {
+        profileFile = new File([profilePhoto], "IMG.png", { type: profilePhoto.type || "image/png" });
+      } else if (profilePath.startsWith("data:")) {
+        profileFile = dataUrlToFile(profilePath, "IMG.png");
+      } else if (profilePath.startsWith("blob:") || profilePath.startsWith("http") || profilePath.startsWith("Upload/")) {
+        profileFile = await profilePhotoToFile(profilePath.startsWith("Upload/") ? formatCrmImageUrl(profilePath) : profilePath);
+        if (profileFile) {
+          profileFile = new File([profileFile], "IMG.png", { type: profileFile.type || "image/png" });
+        }
+      }
+
+      if (profileFile) {
         docList.push({
           Type: "IMG",
           Number: "IMG",
-          ImagePath: remoteProfile,
+          ImagePath: "",
           IssueDate: null,
           ExpiryDate: null,
           IsVerified: false,
         });
-        if (profileFile) {
-          imageFiles.push({ file: profileFile, filename: profileFile.name || "IMG.jpg" });
-        }
+        imageFiles.push({ file: profileFile, filename: "IMG.png" });
       }
 
       const crmCustomerPayload = {

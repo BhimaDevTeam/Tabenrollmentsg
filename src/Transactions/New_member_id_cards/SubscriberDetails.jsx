@@ -23,6 +23,7 @@ const Subscriberdetails = ({
   clearError,
   flag,
   setFlag,
+  onEmailLeave,
 }) => {
   const { customer, selectedCustomerID, isOtherCustomer, selectedCountry } = useSelector(
     (state) => state.customer || {}
@@ -432,6 +433,11 @@ const Subscriberdetails = ({
     });
     clearError("email");
   };
+
+  const handleEmailBlur = () => {
+    const email = (formData.email || initialEmail || "").trim();
+    if (onEmailLeave) onEmailLeave(email, formData.mobileNo || "");
+  };
   const [oldAddressData, setOldAddressData] = useState(null); // State to store old address data
   const [isNewAddressMode, setIsNewAddressMode] = useState(false);
   const handleAddressEdit = (e) => {
@@ -669,6 +675,7 @@ const Subscriberdetails = ({
             className="form-control custom-placeholder"
             value={formData.email || initialEmail || ""}
             onChange={handleEmailChange}
+            onBlur={handleEmailBlur}
             disabled={isminorDisabled || Boolean(initialEmail)}
             readOnly={Boolean(initialEmail)}
             style={Boolean(initialEmail) ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" } : {}}

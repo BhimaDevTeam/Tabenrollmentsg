@@ -1591,33 +1591,21 @@ const Mypage = () => {
     return a === b || a.endsWith(b) || b.endsWith(a);
   };
 
-  const boundMobileFromRecord = (record) => {
-    const found = [];
-    const push = (value) => {
-      const text = String(value || "").trim();
-      if (!text || text.includes("@")) return;
-      if (digitsOnly(text).length >= 8) found.push(text);
-    };
-    const walk = (node) => {
-      if (!node || typeof node !== "object") return;
-      Object.entries(node).forEach(([key, value]) => {
-        if (/mobile|phone|contact/i.test(key)) push(value);
-        else if (value && typeof value === "object") walk(value);
-      });
-    };
-    walk(record);
-    return found[0] || "";
+  const maskMobile = (value) => {
+    const digits = digitsOnly(value);
+    if (!digits) return "";
+    const last4 = digits.slice(-4);
+    return `${"*".repeat(4)}${last4}`;
   };
 
-  const currentCustomerId = () => {
-    if (Array.isArray(selectedCustomerID)) return selectedCustomerID[0]?.CustomerID || "";
-    return selectedCustomerID?.CustomerID || "";
-  };
-
-  const checkEmailBinding = async (email) => {
+  const checkEmailBinding = async (email, mobileOverride) => {
     const normalized = String(email || "").trim().toLowerCase();
     if (!normalized || !normalized.includes("@") || selectedCountry !== "Singapore") return "";
-    if (emailBindCache.current.email === normalized && emailBindCache.current.message !== null) {
+    const formMobile = mobileOverride != null
+      ? mobileOverride
+      : (subscriberData.mobileNo || (phone && !String(phone).includes("@") ? phone : ""));
+    const cacheKey = `${normalized}|${digitsOnly(formMobile)}`;
+    if (emailBindCache.current.email === cacheKey && emailBindCache.current.message !== null) {
       return emailBindCache.current.message;
     }
 
@@ -1641,19 +1629,26 @@ const Mypage = () => {
 
     let message = "";
     if (record) {
-      const formMobile = subscriberData.mobileNo || (phone && !String(phone).includes("@") ? phone : "");
-      const boundMobile = boundMobileFromRecord(record);
-      const sameCustomer = currentCustomerId() && String(record.CustomerID || "").toLowerCase() === String(currentCustomerId()).toLowerCase();
-      const sameMobile = boundMobile && mobilesMatch(boundMobile, formMobile);
-      if (!sameCustomer && !sameMobile) {
-        message = boundMobile
-          ? `This gmail is already binded to this mobile no ${boundMobile}`
-          : "This gmail is already binded to another mobile number";
+      const boundMobile = String(record.MobileNo || record.mobileNo || record.Mobile_No || "").trim();
+      const boundDigits = digitsOnly(boundMobile);
+      if (boundDigits && !mobilesMatch(boundDigits, formMobile)) {
+        message = `Number already exists with ${maskMobile(boundDigits)}`;
       }
     }
 
-    emailBindCache.current = { email: normalized, message };
+    emailBindCache.current = { email: cacheKey, message };
     return message;
+  };
+
+  const handleEmailLeave = async (email, mobile) => {
+    const bindMsg = await checkEmailBinding(email, mobile);
+    if (bindMsg) {
+      toast.error(bindMsg);
+      seterrorValidate((prev) => ({ ...prev, email: bindMsg }));
+      return bindMsg;
+    }
+    clearError("email");
+    return "";
   };
 
   const On_click_subsriber_validation = async () => {
@@ -2071,6 +2066,7 @@ const Mypage = () => {
               email={effectiveEmail}
               loginMethod={loginMethod || (effectiveEmail ? "email" : "mobile")}
               clearError={clearError}
+              onEmailLeave={handleEmailLeave}
               showGuardianDetails={showGuardianDetails}
               setShowGuardianDetails={setShowGuardianDetails}
               validationdisable={IsDisabledCheck}

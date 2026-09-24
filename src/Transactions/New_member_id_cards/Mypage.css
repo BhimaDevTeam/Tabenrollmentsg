@@ -69,17 +69,17 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
-  color: #3d2914;
-  border: 1px solid rgba(97, 65, 25, 0.16);
+  background: linear-gradient(135deg, #4a2810, #7a4b27);
+  color: #fcde7e;
+  border: 1px solid #d4af37;
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 6px 12px;
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.02em;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(26, 18, 9, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .enrollment-country span:first-child {
@@ -90,8 +90,8 @@
   height: 22px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #3d2914;
-  color: #f6e7c1;
+  background: rgba(252, 222, 126, 0.16);
+  color: #fcde7e;
   font-size: 10px;
   letter-spacing: 0.04em;
 }
@@ -290,14 +290,21 @@
 }
 
 .gender-option {
-  margin: 0 !important;
-  padding: 0;
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0 8px 8px 0 !important;
+  padding: 0 8px 0 1.6rem !important;
+  min-width: max-content;
 }
 
 .gender-option .form-check-input {
+  position: absolute;
+  left: 0;
   width: 16px;
   height: 16px;
-  margin-top: 0.15em;
+  margin: 0 !important;
   border-color: #c4b4a0;
   cursor: pointer;
 }
@@ -854,48 +861,22 @@ tbody tr:hover {
 }
 
 .mypage-header .MuiAccordion-root {
-  border-radius: 16px !important;
+  border-radius: var(--radius-md) !important;
   overflow: hidden;
-  margin-bottom: 12px !important;
-  background: #ffffff !important;
-  color: #24180f !important;
-  border: 1px solid rgba(36, 24, 15, 0.08) !important;
-  box-shadow: 0 10px 30px rgba(36, 24, 15, 0.06) !important;
-}
-
-.mypage-header .MuiAccordion-root::before {
-  display: none;
-}
-
-.mypage-header .MuiAccordionSummary-root {
-  min-height: 58px !important;
-  padding: 0 18px !important;
-  background: #fff !important;
-  border-bottom: 1px solid transparent;
-}
-
-.mypage-header .MuiAccordion-root.Mui-expanded .MuiAccordionSummary-root {
-  border-bottom-color: rgba(36, 24, 15, 0.08);
-}
-
-.mypage-header .MuiAccordionSummary-content {
-  margin: 14px 0 !important;
+  margin-bottom: 10px !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .mypage-header .MuiAccordionSummary-content .MuiTypography-root {
-  color: #24180f !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.01em;
+  color: #fff !important;
 }
 
 .mypage-header .MuiAccordionSummary-expandIconWrapper {
-  color: #8c5c34 !important;
+  color: #fff !important;
 }
 
 .mypage-header .MuiAccordionDetails-root {
-  padding: 18px 16px 20px !important;
+  padding: 12px 10px !important;
   background: #fff;
 }
 

@@ -11,7 +11,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   max-width: 100%;
-  background: #f4f0ea !important;
+  background: #e0bf91 !important;
   /* Responsive padding - 0 on top */
   padding: 0 8px 8px 8px;
 }

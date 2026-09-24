@@ -940,6 +940,34 @@ const Mypage = () => {
     }
   };
 
+  const profilePhotoToFile = async (photo) => {
+    if (!photo) return null;
+    const named = (blob, fallbackType) => {
+      const type = blob.type || fallbackType || "image/jpeg";
+      const ext = type.includes("png") ? "png" : "jpg";
+      return new File([blob], `IMG.${ext}`, { type });
+    };
+    if (photo instanceof File) return named(photo, photo.type);
+    if (photo instanceof Blob) return named(photo, photo.type);
+    if (typeof photo !== "string") return null;
+    if (photo.startsWith("data:")) {
+      const mime = (photo.match(/^data:(.*?);/) || [])[1] || "image/jpeg";
+      const ext = mime.includes("png") ? "png" : "jpg";
+      return dataUrlToFile(photo, `IMG.${ext}`);
+    }
+    if (photo.startsWith("blob:") || photo.startsWith("http")) {
+      try {
+        const res = await fetch(photo);
+        if (!res.ok) return null;
+        return named(await res.blob(), "image/jpeg");
+      } catch (err) {
+        console.warn("Failed to read profile photo:", err);
+        return null;
+      }
+    }
+    return null;
+  };
+
   const formatDateToYMD = (dateVal) => {
     if (!dateVal) return "";
     if (typeof dateVal === "string") {
@@ -1074,26 +1102,23 @@ const Mypage = () => {
         seenDocNums.add(`aadhar_${String(aadharNo).trim()}`);
       }
 
-      // Handle profile image / captured webcam image as document name "IMG"
+      // Profile photo goes out as Documents Type IMG plus the file on form field "images".
       const profilePhoto = overridePhoto || image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
-      if (profilePhoto) {
-        const isRemoteProfile = typeof profilePhoto === "string" && (profilePhoto.startsWith("http") || profilePhoto.startsWith("Upload/"));
+      const profileFile = await profilePhotoToFile(profilePhoto);
+      const remoteProfile = typeof profilePhoto === "string" && (profilePhoto.startsWith("http") || profilePhoto.startsWith("Upload/"))
+        ? profilePhoto
+        : "";
+      if (profileFile || remoteProfile) {
         docList.push({
           Type: "IMG",
           Number: "IMG",
-          ImagePath: isRemoteProfile ? profilePhoto : "",
+          ImagePath: remoteProfile,
           IssueDate: null,
           ExpiryDate: null,
           IsVerified: false,
         });
-
-        if (profilePhoto instanceof File || profilePhoto instanceof Blob) {
-          imageFiles.push({ file: profilePhoto, filename: "IMG.png" });
-        } else if (typeof profilePhoto === "string" && profilePhoto.startsWith("data:")) {
-          const converted = dataUrlToFile(profilePhoto, "IMG.png");
-          if (converted) {
-            imageFiles.push({ file: converted, filename: "IMG.png" });
-          }
+        if (profileFile) {
+          imageFiles.push({ file: profileFile, filename: profileFile.name || "IMG.jpg" });
         }
       }
 

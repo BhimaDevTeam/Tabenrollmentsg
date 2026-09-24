@@ -1036,8 +1036,54 @@ const Mypage = () => {
       const cCode = isSg ? "SG" : "IN";
       const cName = isSg ? "Singapore" : "India";
 
-      const docList = [];
+      // Customerdatacreate pairs images[0] with Documents[0], images[1] with Documents[1].
+      // A document with an empty ImagePath and no file steals the next photo, so IMG comes back empty.
+      const fileDocs = [];
       const imageFiles = [];
+      const remoteDocs = [];
+      const seenDocNums = new Set();
+
+      const pushDocWithFile = (docType, docNo, file, isVerified) => {
+        const number = String(docNo || docType || "").trim();
+        if (!number || !file) return;
+        const key = `${docType}_${number}`;
+        if (seenDocNums.has(key)) return;
+        seenDocNums.add(key);
+        const ext = String(file.type || "").includes("jpeg") ? "jpg" : "png";
+        const named = new File([file], `${number}.${ext}`, { type: file.type || "image/png" });
+        fileDocs.push({
+          Type: docType,
+          Number: number,
+          ImagePath: "",
+          IssueDate: null,
+          ExpiryDate: null,
+          IsVerified: Boolean(isVerified),
+        });
+        imageFiles.push({ file: named, filename: named.name });
+      };
+
+      const fileFromValue = async (value, filename) => {
+        if (!value) return null;
+        if (value instanceof File) return value;
+        if (value instanceof Blob) return new File([value], filename, { type: value.type || "image/png" });
+        if (typeof value !== "string") return null;
+        let path = value.trim();
+        const dataAt = path.indexOf("data:image");
+        if (dataAt >= 0) path = path.slice(dataAt);
+        if (path.startsWith("data:")) return dataUrlToFile(path, filename);
+        if (path.startsWith("blob:") || path.startsWith("http")) {
+          try {
+            const res = await fetch(path);
+            if (!res.ok) return null;
+            const blob = await res.blob();
+            return new File([blob], filename, { type: blob.type || "image/png" });
+          } catch (err) {
+            console.warn("Could not read image for CRM upload:", err);
+            return null;
+          }
+        }
+        return null;
+      };
 
       const sourceDocs = (uploadedDocs && uploadedDocs.length > 0)
         ? uploadedDocs
@@ -1045,95 +1091,40 @@ const Mypage = () => {
           ? alldocs
           : (selectedCustomerID?.Documents || []);
 
-      const seenDocNums = new Set();
-
       for (const d of sourceDocs) {
         const docType = getDocTypeName(d, isSg);
-        if (docType === "IMG") continue; // Profile / camera photo is handled specifically below
-
+        if (docType === "IMG") continue;
         const docNo = (d.Number || d.documentNo || d.Name || "").trim();
-        const dedupKey = `${docType}_${docNo}`;
-        if (seenDocNums.has(dedupKey) && docNo) continue;
-        if (docNo) seenDocNums.add(dedupKey);
-
-        const imgPathOrData = d.ImagePath || d.imagePath || d.documentData || d.ImageURL || "";
-        const isRemote = typeof imgPathOrData === "string" && (imgPathOrData.startsWith("http") || imgPathOrData.startsWith("Upload/"));
-
-        docList.push({
-          Type: docType,
-          Number: docNo,
-          ImagePath: isRemote ? imgPathOrData : "",
-          IssueDate: null,
-          ExpiryDate: null,
-          IsVerified: Boolean(d.IsVerified || aadharverified === 1),
-        });
-
-        if (d.file instanceof File || d.file instanceof Blob) {
-          imageFiles.push({ file: d.file, filename: `${docNo || docType}.png` });
-        } else if (typeof imgPathOrData === "string" && imgPathOrData.startsWith("data:")) {
-          const converted = dataUrlToFile(imgPathOrData, `${docNo || docType}.png`);
-          if (converted) {
-            imageFiles.push({ file: converted, filename: `${docNo || docType}.png` });
-          }
+        const raw = d.file || d.ImagePath || d.imagePath || d.documentData || d.ImageURL || "";
+        const isRemote = typeof raw === "string" && (raw.startsWith("http") || raw.startsWith("Upload/")) && raw.indexOf("data:image") < 0;
+        if (isRemote) {
+          const key = `${docType}_${docNo}`;
+          if (!docNo || seenDocNums.has(key)) continue;
+          seenDocNums.add(key);
+          remoteDocs.push({
+            Type: docType,
+            Number: docNo,
+            ImagePath: raw.startsWith("Upload/") ? formatCrmImageUrl(raw) : raw,
+            IssueDate: null,
+            ExpiryDate: null,
+            IsVerified: Boolean(d.IsVerified || aadharverified === 1),
+          });
+          continue;
         }
+        const file = await fileFromValue(raw, `${docNo || docType}.png`);
+        pushDocWithFile(docType, docNo, file, d.IsVerified || aadharverified === 1);
       }
 
-      if (subscriberData.panNo && !seenDocNums.has(`PAN_${subscriberData.panNo.trim()}`) && !seenDocNums.has(`NRIC_${subscriberData.panNo.trim()}`)) {
-        const pType = isSg ? "NRIC" : "PAN";
-        docList.push({
-          Type: pType,
-          Number: subscriberData.panNo.trim(),
-          ImagePath: "",
-          IssueDate: null,
-          ExpiryDate: null,
-          IsVerified: false,
-        });
-        seenDocNums.add(`${pType}_${subscriberData.panNo.trim()}`);
-      }
-      if (aadharNo && !seenDocNums.has(`aadhar_${String(aadharNo).trim()}`)) {
-        docList.push({
-          Type: "aadhar",
-          Number: String(aadharNo).trim(),
-          ImagePath: "",
-          IssueDate: null,
-          ExpiryDate: null,
-          IsVerified: Boolean(aadharverified === 1),
-        });
-        seenDocNums.add(`aadhar_${String(aadharNo).trim()}`);
-      }
-
-      // Profile photo: same form-data as Postman — Documents Type IMG with ImagePath "",
-      // and the photo file on the images field next to the PAN/NRIC file.
       const profilePhoto = overridePhoto || image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
-      let profilePath = typeof profilePhoto === "string" ? profilePhoto.trim() : "";
-      const embeddedData = profilePath.indexOf("data:image");
-      if (embeddedData >= 0) profilePath = profilePath.slice(embeddedData);
-
-      let profileFile = null;
-      if (profilePhoto instanceof File) {
-        profileFile = new File([profilePhoto], "IMG.png", { type: profilePhoto.type || "image/png" });
-      } else if (profilePhoto instanceof Blob) {
-        profileFile = new File([profilePhoto], "IMG.png", { type: profilePhoto.type || "image/png" });
-      } else if (profilePath.startsWith("data:")) {
-        profileFile = dataUrlToFile(profilePath, "IMG.png");
-      } else if (profilePath.startsWith("blob:") || profilePath.startsWith("http") || profilePath.startsWith("Upload/")) {
-        profileFile = await profilePhotoToFile(profilePath.startsWith("Upload/") ? formatCrmImageUrl(profilePath) : profilePath);
-        if (profileFile) {
-          profileFile = new File([profileFile], "IMG.png", { type: profileFile.type || "image/png" });
-        }
-      }
-
+      const profileFile = await fileFromValue(profilePhoto, "IMG.png");
+      const profileNumber = [...fileDocs, ...remoteDocs].find((d) => d.Type !== "IMG" && d.Number)?.Number
+        || String(subscriberData.panNo || aadharNo || "").trim()
+        || "IMG";
       if (profileFile) {
-        docList.push({
-          Type: "IMG",
-          Number: "IMG",
-          ImagePath: "",
-          IssueDate: null,
-          ExpiryDate: null,
-          IsVerified: false,
-        });
-        imageFiles.push({ file: profileFile, filename: "IMG.png" });
+        pushDocWithFile("IMG", profileNumber, profileFile, false);
       }
+
+      const docList = [...fileDocs, ...remoteDocs];
 
       const crmCustomerPayload = {
         CustomerID: selectedCustomerID?.CustomerID || null,
@@ -1160,18 +1151,20 @@ const Mypage = () => {
 
       console.log("[CRM Customerdatacreate] payload:", crmCustomerPayload);
 
-      const formData = new FormData();
-      formData.append("documents", JSON.stringify(crmCustomerPayload));
-
-      imageFiles.forEach((item) => {
-        formData.append("images", item.file, item.filename);
-      });
+      const buildCustomerForm = () => {
+        const formData = new FormData();
+        formData.append("documents", JSON.stringify(crmCustomerPayload));
+        imageFiles.forEach((item) => {
+          formData.append("images", item.file, item.filename);
+        });
+        return formData;
+      };
 
       let crmResponse = null;
       try {
         const directRes = await fetch(SG_CUSTOMER_DATA_CREATE_API, {
           method: "POST",
-          body: formData,
+          body: buildCustomerForm(),
         });
         if (directRes.ok) {
           crmResponse = await directRes.json();
@@ -1187,7 +1180,7 @@ const Mypage = () => {
           const proxyUrl = "/api/crm/api_db.js/api/Customerdatacreate";
           const proxyRes = await fetch(proxyUrl, {
             method: "POST",
-            body: formData,
+            body: buildCustomerForm(),
           });
           if (proxyRes.ok) {
             crmResponse = await proxyRes.json();

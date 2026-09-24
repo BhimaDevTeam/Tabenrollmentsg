@@ -93,8 +93,10 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
   const fileInputRef = useRef(null);
   const [cameraStream, setCameraStream] = useState(null);
 
+  const seededCustomerPhoto = useRef(false);
+
   useEffect(() => {
-    if (selectedCustomerID) {
+    if (selectedCustomerID && !seededCustomerPhoto.current) {
       const allDocs = [
         ...(Array.isArray(selectedCustomerID.Documents) ? selectedCustomerID.Documents : []),
         ...(Array.isArray(selectedCustomerID.customerDocuments) ? selectedCustomerID.customerDocuments : []),
@@ -119,13 +121,14 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
 
       const validUrl = resolveImageUrl(rawImgUrl);
       if (validUrl) {
+        seededCustomerPhoto.current = true;
         setInitialImage(validUrl);
         setCurrentImage(validUrl);
         setImageError(false);
         if (getImageUrl) getImageUrl(validUrl);
       }
     }
-  }, [selectedCustomerID, getImageUrl]);
+  }, [selectedCustomerID]);
 
   // Show eKYC Aadhaar photo or external photo when capturedImage changes (from parent)
   useEffect(() => {

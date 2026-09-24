@@ -212,7 +212,7 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
                 <Form.Check
                   inline
                   type="radio"
-                  label="Others"
+                  label="Prefer Not To Say"
                   name="guardGender"
                   id="genderOthers"
                   disabled={isEdit && storeObj.guardGender}

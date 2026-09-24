@@ -656,7 +656,7 @@ const Subscriberdetails = ({
             <Form.Check
               inline
               type="radio"
-              label="Others"
+              label="Prefer Not To Say"
               name="gender"
               id="genderOthers"
               checked={formData.gender === "Others"}

@@ -1101,10 +1101,12 @@ const Mypage = () => {
           const key = `${docType}_${docNo}`;
           if (!docNo || seenDocNums.has(key)) continue;
           seenDocNums.add(key);
+          const stored = formatCrmImageUrl(raw);
+          const uploadAt = stored.toLowerCase().lastIndexOf("upload/");
           remoteDocs.push({
             Type: docType,
             Number: docNo,
-            ImagePath: raw.startsWith("Upload/") ? formatCrmImageUrl(raw) : raw,
+            ImagePath: uploadAt >= 0 ? stored.slice(uploadAt) : stored,
             IssueDate: null,
             ExpiryDate: null,
             IsVerified: Boolean(d.IsVerified || aadharverified === 1),
@@ -1117,7 +1119,11 @@ const Mypage = () => {
 
       const profilePhoto = overridePhoto || image || selectedCustomerID?.ImageURL || selectedCustomerID?.ImageUrl || selectedCustomerID?.Image;
       const profileFile = await fileFromValue(profilePhoto, "IMG.png");
-      const profileNumber = [...fileDocs, ...remoteDocs].find((d) => d.Type !== "IMG" && d.Number)?.Number
+      const existingImg = (selectedCustomerID?.Documents || sourceDocs || []).find(
+        (d) => String(d?.Type || d?.type || "").toUpperCase() === "IMG"
+      );
+      const profileNumber = String(existingImg?.Number || existingImg?.number || "").trim()
+        || [...fileDocs, ...remoteDocs].find((d) => d.Type !== "IMG" && d.Number)?.Number
         || String(subscriberData.panNo || aadharNo || "").trim()
         || "IMG";
       if (profileFile) {

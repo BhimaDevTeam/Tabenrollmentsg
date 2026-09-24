@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from 'react-redux';
 import { Button } from "@mui/material";
-import { Camera, RefreshCw, Upload, Trash2, X, User } from 'lucide-react';
+import { Camera, RefreshCw, Upload, X } from 'lucide-react';
 
 const generateDummyProfileImage = () => {
   try {
@@ -243,25 +243,6 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
     e.target.value = "";
   };
 
-  const handleDelete = () => {
-    if (previousImage && previousImage !== currentImage) {
-      setCurrentImage(previousImage);
-      setPreviousImage(null);
-      setImageError(false);
-      if (getImageUrl) getImageUrl(previousImage);
-    } else if (initialImage && initialImage !== currentImage) {
-      setCurrentImage(initialImage);
-      setPreviousImage(null);
-      setImageError(false);
-      if (getImageUrl) getImageUrl(initialImage);
-    } else {
-      setCurrentImage(null);
-      setPreviousImage(null);
-      setImageError(false);
-      if (getImageUrl) getImageUrl(null);
-    }
-  };
-
   // Cleanup on unmount
   useEffect(() => {
     return () => stopCamera();
@@ -339,18 +320,6 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
               Upload File
             </Button>
 
-            <Button
-              onClick={handleUseDummy}
-              style={{
-                background: "#795548",
-                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            >
-              <User className="w-5 h-5" />
-              Use Dummy Photo
-            </Button>
           </div>
         </div>
       )}
@@ -416,31 +385,6 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
               Upload Photo
             </Button>
 
-            <Button
-              onClick={handleUseDummy}
-              style={{
-                background: "#795548",
-                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            >
-              <User className="w-5 h-5" />
-              Use Dummy Photo
-            </Button>
-
-            <Button
-              onClick={handleDelete}
-              style={{
-                background: "#c62828",
-                color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            >
-              <Trash2 className="w-5 h-5" />
-              Delete Photo
-            </Button>
           </div>
         </div>
       )}
@@ -474,18 +418,6 @@ const CameraComponent = ({ getImageUrl, capturedImage }) => {
             Upload Photo
           </Button>
 
-          <Button
-            onClick={handleUseDummy}
-            style={{
-              background: "#795548",
-              color: "white", display: "flex", alignItems: "center", gap: "8px", textTransform: "none", fontWeight: 600, padding: "8px 16px"
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <User className="w-5 h-5" />
-            Use Dummy Photo
-          </Button>
         </div>
       )}
 

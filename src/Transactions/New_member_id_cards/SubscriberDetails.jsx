@@ -530,6 +530,12 @@ const Subscriberdetails = ({
     }
   };
 
+  const selectedRecord = Array.isArray(selectedCustomerID) ? selectedCustomerID[0] : selectedCustomerID;
+  const savedMobile = cleanMobileNumber(
+    selectedRecord?.MobileNo || selectedRecord?.Mobile_No || selectedRecord?.mobileNo || phoneNo
+  );
+  const mobileLocked = Boolean(savedMobile);
+
   return (
     <div className="container">
       <Form onSubmit={(e) => e.preventDefault()} onKeyDown={handleKeyDownPress}>
@@ -558,8 +564,9 @@ const Subscriberdetails = ({
             </span>
             <Form.Control
               type="text"
-              value={cleanMobileNumber(formData.mobileNo)}
+              value={cleanMobileNumber(formData.mobileNo) || savedMobile}
               onChange={(e) => {
+                if (mobileLocked) return;
                 const val = e.target.value.replace(/\D/g, "");
                 const maxLen = isSingapore ? 8 : 10;
                 if (val.length <= maxLen) {
@@ -568,8 +575,11 @@ const Subscriberdetails = ({
               }}
               placeholder={isSingapore ? "Enter 8-digit mobile number (optional)" : "Enter 10-digit mobile number"}
               className="form-control"
-              disabled={Boolean(cleanMobileNumber(phoneNo))}
-              style={{ borderRadius: "0 4px 4px 0" }}
+              disabled={mobileLocked}
+              readOnly={mobileLocked}
+              style={mobileLocked
+                ? { borderRadius: "0 4px 4px 0", backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" }
+                : { borderRadius: "0 4px 4px 0" }}
             />
           </div>
         </Form.Group>

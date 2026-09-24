@@ -723,18 +723,8 @@ const Mypage = () => {
     ];
 
     const profileImage = activeCustomer.ImageURL || activeCustomer.ImageUrl || activeCustomer.Image;
-    if (profileImage && !rawDocs.some(d => (d.ImageURL || d.ImageUrl || d.ImagePath) === profileImage)) {
-      rawDocs.push({
-        DocumentTypeID: 30,
-        Type: "IMG",
-        Number: "IMG",
-        number: "IMG",
-        documentNo: "IMG",
-        Name: "Profile Image",
-        ImageURL: profileImage,
-        ImagePath: profileImage,
-        DocumentDescription: "Profile Image"
-      });
+    if (profileImage) {
+      setImage((prev) => prev || profileImage);
     }
 
     if (rawDocs.length > 0) {
@@ -754,9 +744,6 @@ const Mypage = () => {
         AADHAAR: 29,
         OTH: 30,
         OTHERS: 30,
-        IMG: 30,
-        PHOTO: 30,
-        IMAGE: 30,
         ADB: 31,
       };
 
@@ -778,6 +765,14 @@ const Mypage = () => {
         const url = String(doc.ImageURL || doc.ImageUrl || doc.imageURL || doc.imageUrl || doc.ImagePath || doc.imagePath || doc.documentData || "").trim();
         const rawType = String(doc.Type || doc.type || doc.docType || "").trim();
         const upperType = rawType.toUpperCase();
+
+        // If it's a profile/captured image, use it for customer photo only — do not include in documents list
+        if (upperType === "IMG" || upperType === "PHOTO" || doc.Number === "IMG" || doc.number === "IMG" || doc.Name === "Profile Image" || doc.documentNo === "IMG") {
+          if (url) {
+            setImage((prev) => prev || url);
+          }
+          return;
+        }
 
         let typeId = 0;
         if (doc.DocumentID && Number(doc.DocumentID) > 0) {
@@ -968,6 +963,9 @@ const Mypage = () => {
   const formatCrmImageUrl = (path) => {
     if (!path || typeof path !== "string") return "";
     let trimmed = path.trim();
+    // Keep camera/upload payloads as data URLs. Prefixing them builds a URL
+    // longer than DraftCustomerDocuments.ImageURL and SQL rejects the insert.
+    if (/^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return trimmed;
     if (trimmed.includes("http://") || trimmed.includes("https://")) {
       const idx = trimmed.lastIndexOf("http");
       return trimmed.slice(idx);
@@ -1288,20 +1286,48 @@ const Mypage = () => {
         }
       }
 
-      // STEP 2: Extract CRM image and documents with full https://bgstaging.bhima.gold/crm/ paths
+      // STEP 2: Use Customerdatacreate ImagePath values (Upload/...) on the draft.
+      // DraftEnrollment stores imagePath as-is only when it is an http URL.
+      // A data URL is written as a new file and is what overflows ImageURL.
       const crmDocs = crmResponse?.Documents || crmResponse?.documents || crmResponse?.data?.Documents || [];
-      const imgDoc = Array.isArray(crmDocs)
-        ? crmDocs.find((d) => d.Type === "IMG" || d.Number === "IMG")
-        : null;
 
-      const finalImageUrl = imgDoc?.ImagePath
-        ? formatCrmImageUrl(imgDoc.ImagePath)
-        : (image || "");
+      const storedCrmPath = (raw) => {
+        if (!raw || typeof raw !== "string") return "";
+        const trimmed = raw.trim();
+        if (!trimmed || /^data:/i.test(trimmed) || /^blob:/i.test(trimmed)) return "";
+        return formatCrmImageUrl(trimmed);
+      };
+
+      const isImageDoc = (d) => {
+        const t = String(d.Type || d.type || "").toUpperCase().trim();
+        const n = String(d.Number || d.number || d.documentNo || d.DocumentNo || "").toUpperCase().trim();
+        const name = String(d.Name || d.name || "").toUpperCase().trim();
+        return t === "IMG" || t === "PHOTO" || n === "IMG" || name === "PROFILE IMAGE" || name === "IMG";
+      };
+
+      const crmPathFor = (d) => {
+        const type = String(d.Type || d.type || "").toUpperCase().trim();
+        const num = String(d.Number || d.documentNo || d.DocumentNo || d.number || d.Name || d.name || "").trim().toUpperCase();
+        const match = (Array.isArray(crmDocs) ? crmDocs : []).find((c) => {
+          const cType = String(c.Type || c.type || "").toUpperCase().trim();
+          const cNum = String(c.Number || c.documentNo || c.DocumentNo || c.number || "").trim().toUpperCase();
+          if (num && cNum && cNum === num) return true;
+          if (type && cType && cType === type && (!num || !cNum)) return true;
+          return false;
+        });
+        return storedCrmPath(match?.ImagePath || match?.imagePath || "");
+      };
+
+      const imgDoc = (Array.isArray(crmDocs) ? crmDocs : []).find((d) => isImageDoc(d));
+      const finalImageUrl = storedCrmPath(
+        imgDoc?.ImagePath || imgDoc?.imagePath || imgDoc?.ImageURL || imgDoc?.imageUrl || selectedCustomerID?.ImageURL || ""
+      );
 
       const combinedDocs = [];
       const seenDocKeys = new Set();
       // 1. Add uploadedDocs (newly uploaded documents)
       (uploadedDocs || []).forEach((d) => {
+        if (isImageDoc(d)) return;
         const id = resolveDocumentId(d);
         const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
         const key = `${id}_${docNo}`;
@@ -1312,6 +1338,7 @@ const Mypage = () => {
       });
       // 2. Add CRM docs if not already present
       (Array.isArray(crmDocs) ? crmDocs : []).forEach((d) => {
+        if (isImageDoc(d)) return;
         const id = resolveDocumentId(d);
         const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
         const key = `${id}_${docNo}`;
@@ -1322,6 +1349,7 @@ const Mypage = () => {
       });
       // 3. Add any from alldocs if not already present
       (alldocs || []).forEach((d) => {
+        if (isImageDoc(d)) return;
         const id = resolveDocumentId(d);
         const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.Name || d.name || "").trim();
         const key = `${id}_${docNo}`;
@@ -1331,36 +1359,47 @@ const Mypage = () => {
         }
       });
 
-      const formattedDocuments = combinedDocs.map((d) => {
-        const resolvedId = resolveDocumentId(d);
-        const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.number || d.Name || d.name || "").trim();
-        const imgPath = formatCrmImageUrl(d.ImagePath || d.imagePath || d.ImageURL || d.imageUrl || "");
-        const defaultType =
-          resolvedId === 24 ? "SOD" :
-          resolvedId === 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") :
-          resolvedId === 26 ? "DRI" :
-          resolvedId === 27 ? (selectedCountry === "Singapore" ? "FIN" : "VOT") :
-          resolvedId === 28 ? "PAS" :
-          resolvedId === 29 ? "AAD" :
-          resolvedId === 30 ? "OTH" :
-          resolvedId === 31 ? "ADB" : "OTH";
-        const docType = d.Type || d.type || defaultType;
+      const formattedDocuments = combinedDocs
+        .filter((d) => !isImageDoc(d))
+        .map((d) => {
+          const resolvedId = resolveDocumentId(d);
+          const docNo = String(d.Number || d.documentNo || d.DocumentNo || d.number || d.Name || d.name || "").trim().slice(0, 100);
+          const imgPath = crmPathFor(d) || storedCrmPath(d.ImagePath || d.imagePath || d.ImageURL || d.imageUrl || "");
+          const defaultType =
+            resolvedId === 24 ? "SOD" :
+            resolvedId === 25 ? (selectedCountry === "Singapore" ? "NRIC" : "PAN") :
+            resolvedId === 26 ? "DRI" :
+            resolvedId === 27 ? (selectedCountry === "Singapore" ? "FIN" : "VOT") :
+            resolvedId === 28 ? "PAS" :
+            resolvedId === 29 ? "AAD" :
+            resolvedId === 30 ? "OTH" :
+            resolvedId === 31 ? "ADB" : "OTH";
+          const docType = d.Type || d.type || defaultType;
 
-        return {
-          ...d,
-          DocumentID: resolvedId,
-          documentTypeId: resolvedId,
-          documentNo: docNo,
-          Number: docNo,
-          Type: docType,
-          ImagePath: imgPath,
-          imagePath: imgPath,
-          IsVerified: Boolean(d.IsVerified || d.isVerified),
-        };
-      });
+          return {
+            DocumentID: resolvedId,
+            documentTypeId: resolvedId,
+            documentNo: docNo,
+            Number: docNo,
+            Type: docType,
+            ImagePath: imgPath,
+            imagePath: imgPath,
+            IsVerified: Boolean(d.IsVerified || d.isVerified),
+          };
+        })
+        .filter((d) => !isImageDoc(d) && d.imagePath);
+
+      const rawMobile = (subscriberData.mobileNo || "").trim();
+      const mobileForDraft =
+        rawMobile &&
+        !rawMobile.includes("@") &&
+        !/[a-zA-Z]/.test(rawMobile) &&
+        rawMobile !== "-"
+          ? rawMobile.slice(0, 20)
+          : "...";
 
       const draftData = {
-        ...(draftIDData ? { DraftID: draftIDData } : {}),
+        ...(Number(draftIDData) > 0 ? { DraftID: Number(draftIDData) } : {}),
         CustomerID: crmResponse?.CustomerID || selectedCustomerID?.CustomerID || "",
         CustomerDBID: crmResponse?.CustomerDBID || selectedCustomerID?.CustomerDBID || null,
         country: selectedCountry || "Singapore",
@@ -1377,9 +1416,7 @@ const Mypage = () => {
         State: subscriberData.state || "",
         City: subscriberData.city || "", //CITY
         Pin_Code: subscriberData.pinCode || "",
-        Mobile_No: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo) && subscriberData.mobileNo.trim() !== "" && subscriberData.mobileNo.trim() !== "-")
-          ? subscriberData.mobileNo.trim()
-          : "-",
+        Mobile_No: mobileForDraft,
         email_id: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
         DateOf_Birth: subscriberData.dob || "",
         InstallmentAmount: installmentAmt,
@@ -1393,7 +1430,7 @@ const Mypage = () => {
         GuardianRelation: guardaianData.guardrelationship || "",
         Guardiangender: guardaianData.guardGender || "",
         GuardianDOB: guardaianData.guarddob || null,
-        IsMembershipCreated: membershipData.isMembershipCreated || "N" || "",
+        IsMembershipCreated: /^y/i.test(String(membershipData.isMembershipCreated || "")) ? "Y" : "N",
         MembershipNo: membershipData.membershipNo || "",
         IsAadarVerified: isaadharVerified,
         IsCancelFlag: "N",

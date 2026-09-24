@@ -2013,57 +2013,19 @@ const Mypage = () => {
       )}
       <CssBaseline />
       <Header branch={branch1} />
-      <div className="header-container flex items-center justify-between px-4 py-3">
-        <div>
-          <Link to={`/?branch=${branch1}`} style={{ textDecoration: "none" }}>
-            <div
-              style={{
-                position: "relative",
-                // backgroundColor:"white",
-                display: "inline-block",
-                fontWeight: "bold",
-              }}
-            >
-              <img
-                src={`${process.env.PUBLIC_URL}/images/bhima_logo3.png`}
-                alt="Home"
-                style={{
-                  width: "100px", // Adjust the size of the icon as needed
-                  height: "60px", // Adjust the height accordingly
-                  marginRight: "0px", // Add margin to create space between the icon and text
-                  marginBottom: "15px",
-                }}
-              />
-            </div>
-          </Link>
+      <div className="enrollment-masthead">
+        <Link to={`/?branch=${branch1}`} className="enrollment-logo" aria-label="Home">
+          <img
+            src={`${process.env.PUBLIC_URL}/images/bhima_logo3.png`}
+            alt="Bhima"
+          />
+        </Link>
+        <div className="enrollment-title-block">
+          <h2>Enrollment</h2>
         </div>
-
-        <div className="flex-1 text-center" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "linear-gradient(135deg, #4a2810, #7a4b27)",
-              color: "#fcde7e",
-              border: "1px solid #d4af37",
-              borderRadius: "20px",
-              padding: "4px 14px",
-              fontSize: "13px",
-              fontWeight: "700",
-              marginBottom: "4px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-          >
-            <span>{selectedCountry === "Singapore" ? "🇸🇬" : "🇮🇳"}</span>
-            <span>{selectedCountry === "Singapore" ? "Singapore (S$ - SGD)" : "India (₹ - INR)"}</span>
-          </div>
-          <h2
-            className="text-black"
-            style={{ fontFamily: "Quiche Sans", fontWeight: "normal", color: "white", margin: 0 }}
-          >
-            ENROLLMENT
-          </h2>
+        <div className="enrollment-country">
+          <span aria-hidden="true">{selectedCountry === "Singapore" ? "SG" : "IN"}</span>
+          <span>{selectedCountry === "Singapore" ? "Singapore · SGD" : "India · INR"}</span>
         </div>
       </div>
 

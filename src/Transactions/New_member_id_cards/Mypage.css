@@ -28,25 +28,87 @@
   --transition: all 0.26s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Header / Breadcrumb container ─── */
-.header-container {
-  display: flex;
-  justify-content: center;
+/* ─── Enrollment masthead ─── */
+.enrollment-masthead {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
   align-items: center;
-  min-height: 10px;
-  padding: 12px 16px;
-  position: relative;
+  gap: 12px;
+  padding: 18px 4px 22px;
 }
 
-.header-container h2 {
+.enrollment-logo {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.enrollment-logo img {
+  width: 108px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.enrollment-title-block {
+  text-align: center;
+  min-width: 0;
+}
+
+.enrollment-title-block h2 {
   margin: 0;
   font-family: 'Playfair Display', serif;
-  font-size: 20px;
-  color: var(--gold-dark);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #24180f;
 }
 
-@media (min-width: 481px) {
-  .header-container h2 { font-size: 24px; }
+.enrollment-country {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #3d2914;
+  border: 1px solid rgba(97, 65, 25, 0.16);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(26, 18, 9, 0.05);
+}
+
+.enrollment-country span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #3d2914;
+  color: #f6e7c1;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 640px) {
+  .enrollment-masthead {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo country"
+      "title title";
+    padding: 12px 2px 16px;
+  }
+  .enrollment-logo { grid-area: logo; }
+  .enrollment-country { grid-area: country; }
+  .enrollment-title-block { grid-area: title; margin-top: 6px; }
+  .enrollment-title-block h2 { font-size: 22px; letter-spacing: 0.12em; }
+  .enrollment-logo img { width: 92px; height: 54px; }
 }
 
 /* ─── Main enrollment container ─── */
@@ -219,15 +281,43 @@
 }
 
 /* ─── Gender Options ─── */
-.gender-option .form-check-label {
-  color: var(--text-mid) !important;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
+.mypage-header .form-group .d-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  margin-top: 6px;
 }
 
 .gender-option {
-  flex: 1 1 auto;
-  margin: 0.1rem;
+  margin: 0 !important;
+  padding: 0;
+}
+
+.gender-option .form-check-input {
+  width: 16px;
+  height: 16px;
+  margin-top: 0.15em;
+  border-color: #c4b4a0;
+  cursor: pointer;
+}
+
+.gender-option .form-check-input:checked {
+  background-color: #8c5c34;
+  border-color: #8c5c34;
+}
+
+.gender-option .form-check-input:focus {
+  box-shadow: 0 0 0 3px rgba(205, 154, 80, 0.28);
+  border-color: #cd9a50;
+}
+
+.gender-option .form-check-label {
+  color: #3d2914 !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .form-group1 {
@@ -764,14 +854,48 @@ tbody tr:hover {
 }
 
 .mypage-header .MuiAccordion-root {
-  border-radius: var(--radius-md) !important;
+  border-radius: 16px !important;
   overflow: hidden;
-  margin-bottom: 10px !important;
-  box-shadow: var(--shadow-sm) !important;
+  margin-bottom: 12px !important;
+  background: #ffffff !important;
+  color: #24180f !important;
+  border: 1px solid rgba(36, 24, 15, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(36, 24, 15, 0.06) !important;
+}
+
+.mypage-header .MuiAccordion-root::before {
+  display: none;
+}
+
+.mypage-header .MuiAccordionSummary-root {
+  min-height: 58px !important;
+  padding: 0 18px !important;
+  background: #fff !important;
+  border-bottom: 1px solid transparent;
+}
+
+.mypage-header .MuiAccordion-root.Mui-expanded .MuiAccordionSummary-root {
+  border-bottom-color: rgba(36, 24, 15, 0.08);
+}
+
+.mypage-header .MuiAccordionSummary-content {
+  margin: 14px 0 !important;
+}
+
+.mypage-header .MuiAccordionSummary-content .MuiTypography-root {
+  color: #24180f !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+}
+
+.mypage-header .MuiAccordionSummary-expandIconWrapper {
+  color: #8c5c34 !important;
 }
 
 .mypage-header .MuiAccordionDetails-root {
-  padding: 12px 10px !important;
+  padding: 18px 16px 20px !important;
   background: #fff;
 }
 

@@ -32,7 +32,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Card } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedCustomerID } from "../../redux/customer/customerSlice";
-import { Drafttabledb, getNewMemberApiUrl, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API } from "../../apiurl";
+import { Drafttabledb, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API } from "../../apiurl";
 import { formatCurrency } from "../../utlis/currencyUtils";
 import WebCamComponent from "./WebCamComponent";
 import UploadDocument from "./UploadFile";
@@ -1244,28 +1244,23 @@ const Mypage = () => {
       const isaadharVerified = aadharverified || 0;
       const aadhar_No = aadharNo ? aadharNo : null;
       const cleanBranch = getCleanBranch(branch || membershipData.branch);
-      const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
-        ? subscriberData.mobileNo
-        : (subscriberData.email || (phone && phone.includes("@") ? phone : "") || "user");
-      // Reuse existing SignRequestID when available (avoid regenerating PDF on every Save)
-      let signRequestId =
-        sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
-        sessionStorage.getItem("currentSignRequestId") ||
-        null;
-      if (!signRequestId) {
-        // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: disabled (0)
-        const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "0") === "1";
-        if (isSignatureEmailEnabled) {
-          try {
-            signRequestId = await generateEnrollmentPdf(cleanBranch);
-          } catch (pdfErr) {
-            console.warn("PDF generation failed (continuing draft save):", pdfErr);
-            signRequestId = null;
-          }
-        } else {
-          console.log("[SaveDraft] Signature email disabled via EnableSignatureEmail=0 — skipping generateEnrollmentPdf.");
-        }
-      }
+      // Signature / enrollment PDF is not used on save.
+      // let signRequestId =
+      //   sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
+      //   sessionStorage.getItem("currentSignRequestId") ||
+      //   null;
+      // if (!signRequestId) {
+      //   const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "0") === "1";
+      //   if (isSignatureEmailEnabled) {
+      //     try {
+      //       signRequestId = await generateEnrollmentPdf(cleanBranch);
+      //     } catch (pdfErr) {
+      //       console.warn("PDF generation failed (continuing draft save):", pdfErr);
+      //       signRequestId = null;
+      //     }
+      //   }
+      // }
+      const signRequestId = null;
       let installmentAmt = Number(membershipData.installmentAmount) || 0;
       let gstAmount = 0;
       let totalAmount = installmentAmt;
@@ -1472,84 +1467,8 @@ const Mypage = () => {
         setdraftIDData(response.data.DraftID);
         console.log("response.data", response.data);
 
-        // 2) After draft save → country portal newmember-creationTE
-        //    India  → VrudhiPortalAPI/.../newmember-creationTE
-        //    Singapore → VrudhiPortalAPISG/.../newmember-creationTE
-        if (response.data.DraftID) {
-          const newMemberUrl = getNewMemberApiUrl(countryCode);
-          fetch(newMemberUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              country: countryName,
-              "country-code": countryCode,
-            },
-            body: JSON.stringify({
-              ID: response.data.DraftID,
-              Status: "SUCCESS",
-            }),
-          })
-            .then(async (r) => {
-              const d = await r.json();
-              const mNo = d?.MembershipNo || d?.membershipNo || d?.Data?.MembershipNo || d?.Data?.membershipNo;
-              console.log(`[newmember-creationTE] ${countryName}:`, newMemberUrl, d);
-              if (mNo) {
-                console.log("[newmember-creationTE] created membership number:", mNo);
-              }
-
-              // 3) Finalize — pass MembershipNo to finalize API
-              const sid = sessionStorage.getItem("currentSignRequestId");
-              const finalizeBody = mNo && sid
-                ? {
-                    DraftID: response.data.DraftID,
-                    SignRequestID: sid,
-                    MembershipNo: mNo,
-                    country: countryName,
-                    countryCode,
-                  }
-                : {
-                    DraftID: response.data.DraftID,
-                    SignRequestID: sid || undefined,
-                    country: countryName,
-                    countryCode,
-                  };
-              const finalizeUrl = mNo && sid
-                ? `${draftApiBase}/finalize-signed-pdf`
-                : `${draftApiBase}/finalize-from-draft`;
-
-              fetch(finalizeUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  country: countryName,
-                  "country-code": countryCode,
-                },
-                body: JSON.stringify(finalizeBody),
-              })
-                .then((fr) => fr.json())
-                .then((fd) => console.log("[finalize] after newmember:", fd))
-                .catch((fe) => console.warn("[finalize] after newmember failed (non-blocking):", fe));
-            })
-            .catch((e) => console.warn("[newmember-creationTE] failed (non-blocking):", e));
-
-          // Also sync documents via DraftEnrollmentApi helper (uses same portal URLs server-side)
-          fetch(`${draftApiBase}/upload-to-crm`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              country: countryName,
-              "country-code": countryCode,
-            },
-            body: JSON.stringify({
-              DraftID: response.data.DraftID,
-              country: countryName,
-              countryCode,
-            }),
-          })
-            .then((r) => r.json())
-            .then((d) => console.log("[CRM] upload-to-crm after draft save:", d))
-            .catch((e) => console.warn("[CRM] Upload failed (non-blocking):", e));
-        }
+        // Not used while saving (no signature / membership creation on this step):
+        // newmember-creationTE, finalize-signed-pdf, finalize-from-draft, upload-to-crm
 
         setIsDraftSaved(true);
 
@@ -1922,37 +1841,7 @@ const Mypage = () => {
           console.log("Updating existing draft to offline payment method");
           setIsSaving(true);
 
-          // Prepare complete draft data with existing DraftID
-          let add1 = subscriberData.address1 || "";
-          let add2 = subscriberData.address2 || "";
-          const isaadharVerified = aadharverified || 0;
-          const aadhar_No = aadharNo ? aadharNo : null;
-          const cleanBranch = getCleanBranch(branch || membershipData.branch);
-          
-          const mob = (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@"))
-            ? subscriberData.mobileNo
-            : (subscriberData.email || (phone && phone.includes("@") ? phone : "") || "user");
-          let signRequestId =
-            sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
-            sessionStorage.getItem("currentSignRequestId") ||
-            null;
-          if (!signRequestId) {
-            // Check web.config flag: EnableSignatureEmail (0 = skip, 1 = send email). Default: disabled (0)
-            const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "0") === "1";
-            if (isSignatureEmailEnabled) {
-              try {
-                signRequestId = await generateEnrollmentPdf(cleanBranch);
-              } catch (e) {
-                console.warn("PDF generate failed on offline update:", e);
-              }
-            } else {
-              console.log("[OfflineUpdate] Signature email disabled via EnableSignatureEmail=0 — skipping generateEnrollmentPdf.");
-            }
-          }
-          // Also call CRM Customerdatacreate
-          saveCustomerToCrm()
-            .then((crmRes) => console.log("[CRM Customerdatacreate] on offline update:", crmRes))
-            .catch((e) => console.warn("[CRM Customerdatacreate] offline update failed:", e));
+          // Signature PDF and a second Customerdatacreate are not called on offline save.
 
           setIsSaving(false);
           setopenofflineModal(true);

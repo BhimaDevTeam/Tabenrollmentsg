@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import axios from "axios";
 import {
   Container,
@@ -32,7 +32,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Card } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedCustomerID } from "../../redux/customer/customerSlice";
-import { Drafttabledb, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API } from "../../apiurl";
+import { Drafttabledb, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API, SG_SEARCH_CUSTOMER_API } from "../../apiurl";
 import { formatCurrency } from "../../utlis/currencyUtils";
 import WebCamComponent from "./WebCamComponent";
 import UploadDocument from "./UploadFile";
@@ -672,7 +672,7 @@ const Mypage = () => {
     }
     // Proceed to save draft
     // alert("before savedraft fx")
-    const docs = validatedocs();
+    const docs = await validatedocs();
     console.log("docs caled",docs)
     //  alert("docs present"+docs)
     if (docs) {
@@ -1580,9 +1580,92 @@ const Mypage = () => {
   }, [subscriberData, membershipData, nomineeData, bankData, guardaianData]);
   const branch1 = localStorage.getItem("decodedBranch");
 
-  const On_click_subsriber_validation = () => {
+  const emailBindCache = useRef({ email: "", message: null });
+
+  const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
+
+  const mobilesMatch = (left, right) => {
+    const a = digitsOnly(left);
+    const b = digitsOnly(right);
+    if (!a || !b) return false;
+    return a === b || a.endsWith(b) || b.endsWith(a);
+  };
+
+  const boundMobileFromRecord = (record) => {
+    const found = [];
+    const push = (value) => {
+      const text = String(value || "").trim();
+      if (!text || text.includes("@")) return;
+      if (digitsOnly(text).length >= 8) found.push(text);
+    };
+    const walk = (node) => {
+      if (!node || typeof node !== "object") return;
+      Object.entries(node).forEach(([key, value]) => {
+        if (/mobile|phone|contact/i.test(key)) push(value);
+        else if (value && typeof value === "object") walk(value);
+      });
+    };
+    walk(record);
+    return found[0] || "";
+  };
+
+  const currentCustomerId = () => {
+    if (Array.isArray(selectedCustomerID)) return selectedCustomerID[0]?.CustomerID || "";
+    return selectedCustomerID?.CustomerID || "";
+  };
+
+  const checkEmailBinding = async (email) => {
+    const normalized = String(email || "").trim().toLowerCase();
+    if (!normalized || !normalized.includes("@") || selectedCountry !== "Singapore") return "";
+    if (emailBindCache.current.email === normalized && emailBindCache.current.message !== null) {
+      return emailBindCache.current.message;
+    }
+
+    let crmList = null;
+    try {
+      const res = await fetch(`${SG_SEARCH_CUSTOMER_API}/${encodeURIComponent(normalized)}`);
+      if (res.ok) crmList = await res.json();
+    } catch (err) {
+      try {
+        const proxyRes = await fetch(`/api/crm/api_db.js/api/Searchcustomer/${encodeURIComponent(normalized)}`);
+        if (proxyRes.ok) crmList = await proxyRes.json();
+      } catch (proxyErr) {
+        console.warn("Email binding lookup failed:", proxyErr);
+      }
+    }
+
+    const record = Array.isArray(crmList) ? crmList.find((row) => {
+      const rowEmail = String(row?.EmailID || row?.email || "").trim().toLowerCase();
+      return !rowEmail || rowEmail === normalized;
+    }) : null;
+
+    let message = "";
+    if (record) {
+      const formMobile = subscriberData.mobileNo || (phone && !String(phone).includes("@") ? phone : "");
+      const boundMobile = boundMobileFromRecord(record);
+      const sameCustomer = currentCustomerId() && String(record.CustomerID || "").toLowerCase() === String(currentCustomerId()).toLowerCase();
+      const sameMobile = boundMobile && mobilesMatch(boundMobile, formMobile);
+      if (!sameCustomer && !sameMobile) {
+        message = boundMobile
+          ? `This gmail is already binded to this mobile no ${boundMobile}`
+          : "This gmail is already binded to another mobile number";
+      }
+    }
+
+    emailBindCache.current = { email: normalized, message };
+    return message;
+  };
+
+  const On_click_subsriber_validation = async () => {
     const errors = validateSubscriber();
     if (Object.keys(errors).length === 0) {
+      const bindMsg = await checkEmailBinding(subscriberData.email);
+      if (bindMsg) {
+        toast.error(bindMsg);
+        seterrorValidate((prev) => ({ ...prev, email: bindMsg }));
+        setExpanded("subscriber-header");
+        return true;
+      }
       showGuardianDetails
         ? setExpanded("guardian-header")
         : setExpanded("membership-header");
@@ -1595,8 +1678,8 @@ const Mypage = () => {
     // SetFirstElement();
   };
 
-  const On_click_guardian_validation = () => {
-    const sub = On_click_subsriber_validation();
+  const On_click_guardian_validation = async () => {
+    const sub = await On_click_subsriber_validation();
 
     if (sub) {
       setExpanded("subscriber-header");
@@ -1616,14 +1699,14 @@ const Mypage = () => {
     // SetFirstElement();
   };
 
-  const On_click_membership_validation = () => {
-    const sub = On_click_subsriber_validation();
+  const On_click_membership_validation = async () => {
+    const sub = await On_click_subsriber_validation();
     if (sub) {
       setExpanded("subscriber-header");
       return false;
     }
   
-    const gub = On_click_guardian_validation();
+    const gub = await On_click_guardian_validation();
     if (gub) {
       setExpanded("guardian-header");
       return;
@@ -1641,18 +1724,18 @@ const Mypage = () => {
     // SetFirstElement();
   };
 
-  const On_click_nominee_validation = (targetSection = "bank-header") => {
-    const sub = On_click_subsriber_validation();
+  const On_click_nominee_validation = async (targetSection = "bank-header") => {
+    const sub = await On_click_subsriber_validation();
     if (sub) {
       setExpanded("subscriber-header");
       return true;
     }
-    const gub = On_click_guardian_validation();
+    const gub = await On_click_guardian_validation();
     if (gub) {
       setExpanded("guardian-header");
       return true;
     }
-    const meb = On_click_membership_validation();
+    const meb = await On_click_membership_validation();
     if (meb) {
       setExpanded("membership-header");
       return true;
@@ -1671,23 +1754,23 @@ const Mypage = () => {
     }
   };
 
-  const On_click_bank_validation = (targetSection = "uploaddoc-header") => {
-    const sub = On_click_subsriber_validation();
+  const On_click_bank_validation = async (targetSection = "uploaddoc-header") => {
+    const sub = await On_click_subsriber_validation();
     if (sub) {
       setExpanded("subscriber-header");
       return true;
     }
-    const gub = On_click_guardian_validation();
+    const gub = await On_click_guardian_validation();
     if (gub) {
       setExpanded("guardian-header");
       return true;
     }
-    const meb = On_click_membership_validation();
+    const meb = await On_click_membership_validation();
     if (meb) {
       setExpanded("membership-header");
       return true;
     }
-    const nom = On_click_nominee_validation("bank-header");
+    const nom = await On_click_nominee_validation("bank-header");
     if (nom) {
       return true;
     }
@@ -1703,34 +1786,34 @@ const Mypage = () => {
       return true;
     }
   };
-  const validatedocs = () => {
+  const validatedocs = async () => {
     const isSingapore = selectedCountry === "Singapore";
 
-    const sub = On_click_subsriber_validation();
+    const sub = await On_click_subsriber_validation();
     if (sub) {
       setExpanded("subscriber-header");
       return false;
     }
-    const gub = On_click_guardian_validation();
+    const gub = await On_click_guardian_validation();
     if (gub) {
       setExpanded("guardian-header");
       return false;
     }
 
-    const meb = On_click_membership_validation();
+    const meb = await On_click_membership_validation();
     if (meb) {
       setExpanded("membership-header");
       return false;
     }
 
-    const nom = On_click_nominee_validation();
+    const nom = await On_click_nominee_validation();
     if (nom) {
       setExpanded("nominee-header");
       return false;
     }
 
     if (!isSingapore) {
-      const bank = On_click_bank_validation();
+      const bank = await On_click_bank_validation();
       if (bank) {
         setExpanded("bank-header");
         return false;
@@ -1758,37 +1841,37 @@ const Mypage = () => {
     return true;
   };
 
-  const On_click_payment_camera_validation = () => {
-    const sub = On_click_subsriber_validation();
+  const On_click_payment_camera_validation = async () => {
+    const sub = await On_click_subsriber_validation();
     if (sub) {
       setExpanded("subscriber-header");
       return false;
     }
-    const gub = On_click_guardian_validation();
+    const gub = await On_click_guardian_validation();
     if (gub) {
       setExpanded("guardian-header");
       return false;
     }
 
-    const meb = On_click_membership_validation();
+    const meb = await On_click_membership_validation();
     if (meb) {
       setExpanded("membership-header");
       return false;
     }
 
-    const nom = On_click_nominee_validation();
+    const nom = await On_click_nominee_validation();
     if (nom) {
       setExpanded("nominee-header");
       return false;
     }
 
-    const bank= On_click_bank_validation();
+    const bank = await On_click_bank_validation();
     if (bank) {
       setExpanded("bank-header");
       return false;
     }
 
-    const doc = validatedocs();
+    const doc = await validatedocs();
     if (!doc) {
       setExpanded("uploaddoc-header");
       return false;

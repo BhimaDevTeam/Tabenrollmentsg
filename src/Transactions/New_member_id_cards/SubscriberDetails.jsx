@@ -237,6 +237,32 @@ const Subscriberdetails = ({
   const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
   const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
 
+  const isMinorTarget =
+    selectedId === "minor" ||
+    isEnrollingMinor ||
+    showGuardianDetails ||
+    (selectedCustomerID && !isMajor(selectedCustomerID)) ||
+    (customer && Array.isArray(customer) && customer.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name)) ||
+    (formData.dob && calculateAge(formData.dob) !== null && calculateAge(formData.dob) < 18);
+
+  const getMinMinorDob = () => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    d.setDate(d.getDate() + 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getTodayDate = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (initialEmail && (!formData.email || isEnrollingMinor || selectedId === "minor")) {
       setFormData((prev) => ({ ...prev, email: initialEmail }));
@@ -636,9 +662,11 @@ const Subscriberdetails = ({
         <PickDate
           dob={formData.dob}
           onDateChange={handleDateChange}
-          disabled={flag.dob ? false : formData.dob?.length}
+          disabled={flag.dob ? false : (isMinorTarget ? false : formData.dob?.length)}
           errorValidate={errorValidate}
           clearError={clearError}
+          minDate={isMinorTarget ? getMinMinorDob() : undefined}
+          maxDate={isMinorTarget ? getTodayDate() : undefined}
         />
         {errorValidate.dob && (
           <Form.Text className="text-danger">{errorValidate.dob}</Form.Text>

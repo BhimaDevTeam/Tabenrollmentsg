@@ -117,6 +117,15 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
     setGuardianData(formData);
   }, [formData, setGuardianData]);
 
+  const getMaxGuardianDob = () => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleGuardGenderChange = (event) => {
     const selectedValue = event.target.value;
     setFormData((prevFormData) => ({ ...prevFormData, guardGender: selectedValue }));
@@ -125,15 +134,28 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
 
   const handleDateChange = (newDate) => {
     setFormData((prevFormData) => ({ ...prevFormData, guarddob: newDate }));
-    clearError('guarddob');
+    if (!newDate) {
+      if (errorValidate) errorValidate.guarddob = 'Guardian DOB is required.';
+    } else {
+      const age = calculateAge(newDate);
+      if (age !== null && age <= 18) {
+        if (errorValidate) errorValidate.guarddob = 'Guardian age should be greater than 18.';
+      } else {
+        clearError('guarddob');
+      }
+    }
   };
 
   useEffect(() => {
-    const age = calculateAge(formData.guarddob);
-    if (age !== null && age <= 18) {
-      errorValidate.guarddob = 'Guardian age should be greater than 18.';
+    if (formData.guarddob) {
+      const age = calculateAge(formData.guarddob);
+      if (age !== null && age <= 18) {
+        if (errorValidate) errorValidate.guarddob = 'Guardian age should be greater than 18.';
+      } else if (age !== null && age > 18) {
+        clearError('guarddob');
+      }
     }
-  }, [formData.guarddob, errorValidate]);
+  }, [formData.guarddob, errorValidate, clearError]);
 
   return (
     <div className='container'>
@@ -197,7 +219,6 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
             </Form.Group>
           </Col>
 
-
           <Form.Group controlId="formGender" className="form-group">
             <Form.Label className="form-label"> Gender*:</Form.Label>
             <div className="d-flex flex-wrap" required >
@@ -208,11 +229,9 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
                   label="Male"
                   name="guardGender"
                   id="genderMale"
-                  value="Male" // Add value prop
-                  disabled={isEdit && storeObj.guardGender}
+                  value="Male"
                   checked={formData.guardGender === "Male"}
-                  onChange={handleGuardGenderChange} // Directly use the handler
-
+                  onChange={handleGuardGenderChange}
                 />
               </div>
               <div className="gender-option mx-2 ">
@@ -222,12 +241,9 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
                   label="Female"
                   name="guardGender"
                   id="genderFemale"
-                  disabled={isEdit && storeObj.guardGender}
-                  value="Female" // Add value prop
+                  value="Female"
                   checked={formData.guardGender === "Female"}
-                  onChange={handleGuardGenderChange} // Directly use the handler
-
-
+                  onChange={handleGuardGenderChange}
                 />
               </div>
               <div className="gender-option mx-2 ">
@@ -237,27 +253,24 @@ const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearE
                   label="Prefer Not To Say"
                   name="guardGender"
                   id="genderOthers"
-                  disabled={isEdit && storeObj.guardGender}
-                  value="Others" // Add value prop
+                  value="Others"
                   checked={formData.guardGender === "Others"}
-                  onChange={handleGuardGenderChange} // Directly use the handler
-
-
+                  onChange={handleGuardGenderChange}
                 />
               </div>
-
             </div>
             {errorValidate.guardGender && <Form.Text className="text-danger">{errorValidate.guardGender}</Form.Text>}
           </Form.Group>
-          <Form.Group controlId="formGuardianDob">
 
-            <PickDate dob={formData.guarddob} onDateChange={handleDateChange} label="Guardian DOB*:"  disabled={isEdit &&  storeObj.guardname}/>
+          <Form.Group controlId="formGuardianDob">
+            <PickDate
+              dob={formData.guarddob}
+              onDateChange={handleDateChange}
+              label="Guardian DOB*:"
+              disabled={false}
+              maxDate={getMaxGuardianDob()}
+            />
             {errorValidate.guarddob && <Form.Text className="text-danger">{errorValidate.guarddob}</Form.Text>}
-            {/* {formData.guarddob && calculateAge(formData.guarddob) <= 18 && (
-            <Form.Text className="text-danger">
-              Guardian age should be greater than 18.
-            </Form.Text>
-          )} */}
           </Form.Group>
         </Row>
       </Form>

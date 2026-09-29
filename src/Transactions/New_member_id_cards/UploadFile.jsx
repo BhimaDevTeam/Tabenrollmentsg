@@ -113,9 +113,9 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
       type: 'DRI',
     },
     27: isSingapore ? {
-      pattern: /^[FGM][0-9]{7}[A-Z]$/i,
+      pattern: /^[STFGM][0-9]{7}[A-Z]$/i,
       maxLength: 9,
-      errorMessage: 'Please enter a valid FIN number (e.g., "F1234567A").',
+      errorMessage: 'Please enter a valid FIN/NRIC number (e.g., "S1234567A", "F1234567A").',
       type: 'FIN',
     } : {
       pattern: /^[A-Z]{3}[0-9]{7}$/,

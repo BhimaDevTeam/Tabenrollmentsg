@@ -42,10 +42,13 @@ const Nomineedeatils = ({
   const [relationships, setRelationships] = useState([]);
   const [sameAsSubscriber, setSameAsSubscriber] = useState(false);
 
-  // Filter relationship options based on subscriber gender
+  // Filter relationship options based on subscriber gender and exclude spouse
   const currentGender = (subscriberGender || subscriberAddress?.gender || "").toString().trim().toLowerCase();
   const filteredRelationships = relationships.filter((rel) => {
     const relName = rel.Name ? rel.Name.trim().toLowerCase() : "";
+    if (relName === "spouse" || relName.includes("spouse")) {
+      return false;
+    }
     if (currentGender === "male" && relName === "husband") {
       return false;
     }

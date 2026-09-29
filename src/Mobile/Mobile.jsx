@@ -131,7 +131,10 @@ const Mobile = () => {
 
   const [phoneNo, setPhoneNo] = useState(""); // Load phoneNo from localStorage if it exists
   const [loginMethod, setLoginMethod] = useState("mobile"); // "mobile" | "email"
-  const [emailInput, setEmailInput] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : ""));
+  // Always start empty - do NOT pre-fill from localStorage so old emails don't persist after OTP verification
+  const [emailInput, setEmailInput] = useState("");
+  const [contactInput, setContactInput] = useState("");
+  const isEmailMode = selectedCountry === "Singapore" && (loginMethod === "email" || (contactInput && /[a-zA-Z@]/.test(contactInput)));
 
   const [errors, setErrors] = useState("");
   const [loading, setLoading] = useState(false);
@@ -393,6 +396,37 @@ const Mobile = () => {
     }
   };
 
+  const handleContactChange = (e) => {
+    const value = e.target.value;
+    if (errors) setErrors("");
+
+    if (!value) {
+      setContactInput("");
+      setPhoneNo("");
+      setEmailInput("");
+      setLoginMethod("mobile");
+      return;
+    }
+
+    // If input contains letters or '@', auto-detect as email
+    const hasEmailChars = /[a-zA-Z@]/.test(value);
+    if (hasEmailChars) {
+      setContactInput(value);
+      setLoginMethod("email");
+      setEmailInput(value.trim());
+      setPhoneNo("");
+    } else {
+      // Otherwise digits only for mobile number
+      const digitsOnly = value.replace(/\D/g, "");
+      const maxLen = selectedCountry === "Singapore" ? 8 : 10;
+      const capped = digitsOnly.slice(0, maxLen);
+      setContactInput(capped);
+      setLoginMethod("mobile");
+      setPhoneNo(capped);
+      setEmailInput("");
+    }
+  };
+
   const handleReceivedOtp = (e) => {
     const value = e.target.value;
 
@@ -404,201 +438,58 @@ const Mobile = () => {
   };
 
   // Handle form submission to send OTP
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     if (!phoneNo) {
-//       setErrors("Mobile number cannot be empty.");
-//       return;
-//     } else if (!/^\d{10}$/.test(phoneNo)) {
-//       setErrors("Mobile number must be exactly 10 digits.");
-//       return;
-//     }
-
-//     setLoading(true); // Set loading state here, not outside the function
-//     setErrors("");
-
-//     try {
-//       // Replace with your actual API endpoint
-//       const responseRevOTP = await fetch(
-//   `${CustomerMobileOTP}/Sendotp/${phoneNo}`,
-//         {
-//           method: "GET",
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
-//         }
-//       );
-
-//       if (!responseRevOTP.ok) {
-//         const errorText = await responseRevOTP.text();
-//         throw new Error(
-//           `HTTP error! status: ${responseRevOTP.status}, message: ${errorText}`
-//         );
-//       }
-
-//       const result = await responseRevOTP.json();
-  
-
-//       if (result.success) {
-//         console.log("otp sent successfully to your mobile number");
-//         setShowModal(true); // Show the OTP modal
-//       } else {
-//         setErrors("OTP generation failed. Please try again.");
-//       }
-//     } catch (errors) {
-//       console.error("Error sending OTP:", errors);
-//       setErrors("Failed to send OTP. Please try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//     // Handle OTP submission
-//     const handleOtpSubmit = async (e) => {
-    
-//       e.preventDefault()
-//       if (!receivedOtp.trim()) {
-//       setOtpError("OTP cannot be empty.");
-//       return;
-//     }
-
-//     setOtpError("");
-//     setLoading(true);
-//     // console.log("recevied otp, phoneno", phoneNo, receivedOtp);
-//     try {
-//       // Replace with your actual API endpoint
-//       const responseSubOTP = await fetch(
-//         `${CustomerMobileOTP}/Validateotp/${phoneNo}/${receivedOtp}`,
-//         {
-//           method: "GET",
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
-//         }
-//       );
-
-//       if (!responseSubOTP.ok) {
-//         const errorText = await responseSubOTP.text();
-//         throw new Error(
-//           `HTTP error! status: ${responseSubOTP.status}, message: ${errorText}`
-//         );
-//       }
-
-//       const data = await responseSubOTP.json();
-//       // console.log("OTP verification response:", data);
-//       // Handle successful OTP verification, e.g., redirect or show success message
-//       if (data.success) {
-//         // Handle success
-//         navigate("/MobileVer", { state: { phoneNo,branch } });
-//         console.log("OTP verified successfully");
-//         // Close the modal or perform other actions
-
-//         setShowModal(false);
-//       } else {
-//         // Handle failure
-//         setOtpError("Invalid OTP. Please try again.");
-//       }
-//     } catch (errors) {
-//       console.errors("Error verifying OTP:", errors);
-//       setOtpError("Failed to verify OTP. Please try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//     // console.log("mmmmm number",phoneNo);
-//   };
-
-
-  // ----------otp hardcode----------
-//   Handle form submission to send OTP (but actually skip sending)
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     if (!phoneNo) {
-//       setErrors("Mobile number cannot be empty.");
-//       return;
-//     } else if (!/^\d{10}$/.test(phoneNo)) {
-//       setErrors("Mobile number must be exactly 10 digits.");
-//       return;
-//     }
-
-//     setLoading(true);
-//     setErrors("");
-
-//     // Skip the actual OTP sending and just show the modal
-//     setShowModal(true); // Show the OTP modal
-//     setLoading(false);
-//     // setPhoneNo('')
-//   };
-
-//   // Handle OTP submission
-//   const handleOtpSubmit = async () => {
-//     if (!receivedOtp) {
-//       setOtpError("OTP cannot be empty.");
-//       return;
-//     }
-
-//     setOtpError("");
-//     setLoading(true);
-
-//     // Hardcode the OTP check
-//     if (receivedOtp === "123456") {
-//       // Successful OTP verification
-//       navigate("/MobileVer", { state: { phoneNo } });
-//       setShowModal(false); // Close the modal
-//     } else {
-//       // Handle incorrect OTP
-//       setOtpError("Invalid OTP. Please try again.");
-//       setLoading(false);
-//       return; // Prevent closing the modal
-//     }
-
-//     // setLoading(false);
-//   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const isSingapore = selectedCountry === "Singapore";
+    const rawVal = (contactInput || (loginMethod === "email" ? emailInput : phoneNo) || "").trim();
+
+    if (!rawVal) {
+      setErrors(isSingapore ? "Please enter your mobile number or Gmail / Email address." : "Mobile number cannot be empty.");
+      return;
+    }
+
+    const isEmail = isSingapore && (rawVal.includes("@") || /[a-zA-Z]/.test(rawVal) || loginMethod === "email");
 
     // Singapore Email / Gmail flow
-    if (isSingapore && loginMethod === "email") {
-      const emailTrimmed = emailInput.trim();
+    if (isSingapore && isEmail) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailTrimmed) {
-        setErrors("Gmail / Email address cannot be empty.");
-        return;
-      } else if (!emailRegex.test(emailTrimmed)) {
+      if (!emailRegex.test(rawVal)) {
         setErrors("Please enter a valid Gmail / Email address (e.g. name@gmail.com).");
         return;
       }
 
+      setLoginMethod("email");
+      setEmailInput(rawVal);
       setLoading(false);
       setErrors("");
-      localStorage.setItem("customerEmail", emailTrimmed);
-      localStorage.setItem("phoneNo", emailTrimmed);
+      localStorage.setItem("customerEmail", rawVal);
+      localStorage.setItem("phoneNo", rawVal);
       setReceivedOtp("");
       setOtpError("");
       setShowModal(true); // Ask for OTP
       return;
     }
 
+    const digitsOnly = rawVal.replace(/\D/g, "");
     const reqDigits = isSingapore ? 8 : 10;
     const countryLabel = isSingapore ? "Singapore (+65)" : "Indian (+91)";
 
-    if (!phoneNo) {
-      setErrors("Mobile number cannot be empty.");
+    if (!digitsOnly) {
+      setErrors(isSingapore ? "Please enter a valid 8-digit mobile number or Gmail / Email." : "Mobile number cannot be empty.");
       return;
-    } else if (phoneNo.length !== reqDigits) {
+    } else if (digitsOnly.length !== reqDigits) {
       setErrors(`Mobile number must be exactly ${reqDigits} digits for ${countryLabel} numbers.`);
       return;
     }
 
+    setLoginMethod("mobile");
+    setPhoneNo(digitsOnly);
     setLoading(true);
     setErrors("");
 
     if (isSingapore) {
-      localStorage.setItem("phoneNo", phoneNo);
+      localStorage.setItem("phoneNo", digitsOnly);
       setReceivedOtp("");
       setOtpError("");
       setShowModal(true); // Ask for OTP
@@ -661,25 +552,27 @@ const Mobile = () => {
     // Hardcode OTP: 123456
     if (trimmedOtp === "123456") {
       dispatch(setIsCountryLocked(true));
-      const emailTrimmed = loginMethod === "email" ? emailInput.trim() : (localStorage.getItem("customerEmail") || "");
+      const effectiveEmail = (loginMethod === "email" ? (emailInput || contactInput) : (localStorage.getItem("customerEmail") || "")).trim();
+      const effectivePhone = (phoneNo || contactInput || "").trim();
+      // Clear stored email so it doesn't pre-fill on next open
+      localStorage.removeItem("customerEmail");
       if (loginMethod === "email") {
-        localStorage.setItem("customerEmail", emailTrimmed);
-        localStorage.setItem("phoneNo", emailTrimmed);
+        localStorage.setItem("phoneNo", effectiveEmail);
         navigate("/MobileVer", {
           state: {
-            phoneNo: emailTrimmed,
-            email: emailTrimmed,
+            phoneNo: effectiveEmail,
+            email: effectiveEmail,
             loginMethod: "email",
             branch,
             selectedScheme: schemeToPass,
           },
         });
       } else {
-        localStorage.setItem("phoneNo", phoneNo);
+        localStorage.setItem("phoneNo", effectivePhone);
         navigate("/MobileVer", {
           state: {
-            phoneNo,
-            email: emailTrimmed,
+            phoneNo: effectivePhone,
+            email: effectiveEmail,
             loginMethod: "mobile",
             branch,
             selectedScheme: schemeToPass,
@@ -689,6 +582,10 @@ const Mobile = () => {
       console.log("OTP verified successfully (123456)");
       setShowModal(false);
       setLoading(false);
+      // Reset inputs so they're empty on next open
+      setEmailInput("");
+      setPhoneNo("");
+      setContactInput("");
       return;
     }
 
@@ -743,6 +640,8 @@ const Mobile = () => {
 
       if (isOtpValid(data, trimmedOtp)) {
         const emailTrimmed = localStorage.getItem("customerEmail") || "";
+        // Clear stored email so it doesn't pre-fill on next open
+        localStorage.removeItem("customerEmail");
         dispatch(setIsCountryLocked(true));
         navigate("/MobileVer", {
           state: {
@@ -755,6 +654,9 @@ const Mobile = () => {
         });
         console.log("OTP verified successfully");
         setShowModal(false);
+        // Reset inputs so they're empty on next open
+        setPhoneNo("");
+        setEmailInput("");
       } else {
         setOtpError(data.message || data.Message || "Invalid OTP. Please try again.");
       }
@@ -875,7 +777,7 @@ const Mobile = () => {
               </div>
               <button
                 type="button"
-                onClick={() => { setShowMobileForm(false); setEnrolledScheme(null); setViewingScheme(null); setShowSchemes(true); }}
+                onClick={() => { setShowMobileForm(false); setEnrolledScheme(null); setViewingScheme(null); setShowSchemes(true); setContactInput(""); setPhoneNo(""); setEmailInput(""); setErrors(""); }}
                 style={{ background: "none", border: "none", color: "#614119", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }}
               >
                 Change
@@ -884,138 +786,88 @@ const Mobile = () => {
           )}
 
           <Form className="mainmobilecontainer" onSubmit={handleSubmit}>
-            {/* Singapore Contact Mode Toggle: Mobile Number vs Gmail / Email */}
-            {selectedCountry === "Singapore" && (
-              <div style={{
-                display: "flex",
-                background: "#f7f1e6",
-                borderRadius: "8px",
-                padding: "4px",
-                marginBottom: "16px",
-                gap: "4px",
-                border: "1px solid #ebdccb",
-              }}>
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod("mobile"); setErrors(""); }}
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: "600", color: "#4a2810", fontSize: "14px", marginBottom: "6px" }}>
+                {selectedCountry === "Singapore" ? "Mobile Number or Gmail / Email" : "Mobile Number"}
+              </Form.Label>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span
                   style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    fontSize: "13px",
-                    fontWeight: loginMethod === "mobile" ? "700" : "500",
-                    background: loginMethod === "mobile" ? "linear-gradient(103deg, #8c5c34 0%, #b58e46 100%)" : "transparent",
-                    color: loginMethod === "mobile" ? "#ffffff" : "#664d36",
-                    cursor: "pointer",
-                    boxShadow: loginMethod === "mobile" ? "0 2px 4px rgba(140, 92, 52, 0.2)" : "none",
+                    background: "linear-gradient(135deg, #f0e6d8, #e5d8c7)",
+                    color: "#4a2810",
+                    fontWeight: "700",
+                    fontSize: isEmailMode ? "13px" : "14px",
+                    padding: "10px 14px",
+                    border: "1px solid #ced4da",
+                    borderRight: "none",
+                    borderRadius: "6px 0 0 6px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    height: "46px",
+                    boxSizing: "border-box",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
+                    minWidth: selectedCountry === "Singapore" ? "92px" : "85px",
+                    justifyContent: "center",
                     transition: "all 0.2s ease",
                   }}
                 >
-                  📱 Mobile Number
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setLoginMethod("email"); setErrors(""); }}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    borderRadius: "6px",
-                    border: "none",
-                    fontSize: "13px",
-                    fontWeight: loginMethod === "email" ? "700" : "500",
-                    background: loginMethod === "email" ? "linear-gradient(103deg, #8c5c34 0%, #b58e46 100%)" : "transparent",
-                    color: loginMethod === "email" ? "#ffffff" : "#664d36",
-                    cursor: "pointer",
-                    boxShadow: loginMethod === "email" ? "0 2px 4px rgba(140, 92, 52, 0.2)" : "none",
-                    transition: "all 0.2s ease",
-                  }}
-                >
-                  ✉️ Gmail / Email
-                </button>
+                  {isEmailMode ? (
+                    <>
+                      <span>✉️</span>
+                      <span style={{ fontSize: "12px", color: "#614119" }}>Email</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{selectedCountry === "Singapore" ? "🇸🇬" : "🇮🇳"}</span>
+                      <span>{selectedCountry === "Singapore" ? "+65" : "+91"}</span>
+                      {!contactInput && selectedCountry === "Singapore" && (
+                        <span style={{ color: "#8c6b45", fontSize: "12px", fontWeight: "normal" }}>
+                          / ✉️
+                        </span>
+                      )}
+                    </>
+                  )}
+                </span>
+                <Form.Control
+                  className="forminput custom-placeholder"
+                  type={isEmailMode ? "email" : "text"}
+                  placeholder={
+                    selectedCountry === "Singapore"
+                      ? (isEmailMode ? "Enter your Gmail or Email address" : "Enter 8-digit mobile or Gmail / Email")
+                      : "Enter 10-digit mobile number"
+                  }
+                  value={contactInput}
+                  onChange={handleContactChange}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  style={{ borderRadius: "0 6px 6px 0" }}
+                />
               </div>
-            )}
 
-            {loginMethod === "mobile" ? (
-              <Form.Group className="mb-3">
-                <Form.Label>Mobile Number</Form.Label>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <span
-                    style={{
-                      background: "linear-gradient(135deg, #f0e6d8, #e5d8c7)",
-                      color: "#4a2810",
-                      fontWeight: "700",
-                      fontSize: "14px",
-                      padding: "10px 14px",
-                      border: "1px solid #ced4da",
-                      borderRight: "none",
-                      borderRadius: "6px 0 0 6px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      height: "46px",
-                      boxSizing: "border-box",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    }}
-                  >
-                    <span>{selectedCountry === "Singapore" ? "🇸🇬" : "🇮🇳"}</span>
-                    <span>{selectedCountry === "Singapore" ? "+65" : "+91"}</span>
+              {selectedCountry === "Singapore" && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "5px", fontSize: "12px", color: "#7a5c3e" }}>
+                  <span>
+                    {isEmailMode
+                      ? "✉️ Email mode auto-detected"
+                      : (contactInput ? "📱 Singapore Mobile (+65) detected" : "Enter mobile number or Gmail / Email")}
                   </span>
-                  <Form.Control
-                    className="forminput custom-placeholder"
-                    type="tel"
-                    placeholder={selectedCountry === "Singapore" ? "Enter 8-digit mobile number" : "Enter 10-digit mobile number"}
-                    value={phoneNo}
-                    onChange={handleChange}
-                    maxLength={selectedCountry === "Singapore" ? 8 : 10}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    style={{ borderRadius: "0 6px 6px 0" }}
-                  />
+                  {isEmailMode && contactInput && (
+                    <span style={{ color: contactInput.includes("@") && contactInput.includes(".") ? "#28a745" : "#8c5c34", fontWeight: "600" }}>
+                      {contactInput.includes("@") && contactInput.includes(".") ? "✓ Ready" : "Typing email..."}
+                    </span>
+                  )}
+                  {!isEmailMode && contactInput && (
+                    <span style={{ color: contactInput.length === 8 ? "#28a745" : "#8c5c34", fontWeight: "600" }}>
+                      {contactInput.length}/8 digits
+                    </span>
+                  )}
                 </div>
+              )}
 
-                {errors && <Form.Text className="text-danger">{errors}</Form.Text>}
-              </Form.Group>
-            ) : (
-              <Form.Group className="mb-3">
-                <Form.Label>Gmail / Email Address</Form.Label>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <span
-                    style={{
-                      background: "linear-gradient(135deg, #f0e6d8, #e5d8c7)",
-                      color: "#4a2810",
-                      fontWeight: "700",
-                      fontSize: "15px",
-                      padding: "10px 14px",
-                      border: "1px solid #ced4da",
-                      borderRight: "none",
-                      borderRadius: "6px 0 0 6px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      height: "46px",
-                      boxSizing: "border-box",
-                      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    }}
-                  >
-                    <span>✉️</span>
-                  </span>
-                  <Form.Control
-                    className="forminput custom-placeholder"
-                    type="email"
-                    placeholder="Enter your Gmail or Email address"
-                    value={emailInput}
-                    onChange={(e) => {
-                      setEmailInput(e.target.value);
-                      if (errors) setErrors("");
-                    }}
-                    style={{ borderRadius: "0 6px 6px 0" }}
-                  />
-                </div>
-
-                {errors && <Form.Text className="text-danger">{errors}</Form.Text>}
-              </Form.Group>
-            )}
+              {errors && <Form.Text className="text-danger" style={{ display: "block", marginTop: "4px" }}>{errors}</Form.Text>}
+            </Form.Group>
 
             <button
               type="submit"
@@ -1352,8 +1204,8 @@ const Mobile = () => {
                 Enter OTP sent to{" "}
                 <span style={{ color: "#7a4b27", fontWeight: "600" }}>
                   {loginMethod === "email"
-                    ? (emailInput || "your email")
-                    : (phoneNo ? `${selectedCountry === "Singapore" ? "+65 " : "+91 "}${phoneNo}` : "your mobile")}
+                    ? (emailInput || contactInput || "your email")
+                    : (phoneNo || contactInput ? `${selectedCountry === "Singapore" ? "+65 " : "+91 "}${phoneNo || contactInput}` : "your mobile")}
                 </span>
               </Form.Label>
               <Form.Control

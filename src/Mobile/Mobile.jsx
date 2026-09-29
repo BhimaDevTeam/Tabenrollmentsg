@@ -135,6 +135,7 @@ const Mobile = () => {
   const [emailInput, setEmailInput] = useState("");
   const [contactInput, setContactInput] = useState("");
   const isEmailMode = selectedCountry === "Singapore" && (loginMethod === "email" || (contactInput && /[a-zA-Z@]/.test(contactInput)));
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const [errors, setErrors] = useState("");
   const [loading, setLoading] = useState(false);
@@ -762,119 +763,308 @@ const Mobile = () => {
           {/* Selected scheme badge */}
           {enrolledScheme && (
             <div style={{
-              background: "#f9f6f1",
-              borderRadius: "8px",
-              padding: "10px 16px",
-              margin: "0 20px 10px",
-              border: "1px solid #e5d8c7",
+              background: "linear-gradient(135deg, #fffdfa 0%, #fbf6ee 100%)",
+              borderRadius: "14px",
+              padding: "12px 16px",
+              margin: "0 0 16px",
+              border: "1.5px solid #ecd8bf",
+              boxShadow: "0 4px 14px rgba(140, 92, 52, 0.06)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
             }}>
-              <div>
-                <span style={{ color: "#888", fontSize: "12px" }}>Selected Scheme</span>
-                <p style={{ margin: 0, fontWeight: "600", color: "#614119", fontSize: "15px" }}>{enrolledScheme.title}</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  background: "linear-gradient(135deg, #8c5c34, #b58e46)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: "16px",
+                  boxShadow: "0 2px 6px rgba(140, 92, 52, 0.2)"
+                }}>
+                  ✨
+                </div>
+                <div>
+                  <span style={{ color: "#9a8069", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: "'Inter', sans-serif" }}>
+                    Selected Scheme
+                  </span>
+                  <p style={{ margin: 0, fontWeight: "700", color: "#4a2e14", fontSize: "15px", fontFamily: "'Inter', sans-serif" }}>
+                    {enrolledScheme.title}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowMobileForm(false); setEnrolledScheme(null); setViewingScheme(null); setShowSchemes(true); setContactInput(""); setPhoneNo(""); setEmailInput(""); setErrors(""); }}
-                style={{ background: "none", border: "none", color: "#614119", fontSize: "13px", cursor: "pointer", textDecoration: "underline" }}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #d8be9f",
+                  color: "#7a4b27",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  transition: "all 0.2s ease",
+                  fontFamily: "'Inter', sans-serif"
+                }}
               >
                 Change
               </button>
             </div>
           )}
 
-          <Form className="mainmobilecontainer" onSubmit={handleSubmit}>
+          <Form className="mainmobilecontainer" onSubmit={handleSubmit} style={{ width: "100%" }}>
             <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: "600", color: "#4a2810", fontSize: "14px", marginBottom: "6px" }}>
-                {selectedCountry === "Singapore" ? "Mobile Number or Gmail / Email" : "Mobile Number"}
-              </Form.Label>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #f0e6d8, #e5d8c7)",
-                    color: "#4a2810",
-                    fontWeight: "700",
-                    fontSize: isEmailMode ? "13px" : "14px",
-                    padding: "10px 14px",
-                    border: "1px solid #ced4da",
-                    borderRight: "none",
-                    borderRadius: "6px 0 0 6px",
+              {/* Header Label + Auto-detect Pill */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <Form.Label style={{
+                  margin: 0,
+                  fontWeight: "700",
+                  fontSize: "13.5px",
+                  color: "#4a311c",
+                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: "0.2px"
+                }}>
+                  {selectedCountry === "Singapore" ? "Mobile Number or Email" : "Mobile Number"}
+                </Form.Label>
+                {selectedCountry === "Singapore" && (
+                  <div style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "6px",
-                    height: "46px",
-                    boxSizing: "border-box",
-                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
-                    minWidth: selectedCountry === "Singapore" ? "92px" : "85px",
-                    justifyContent: "center",
-                    transition: "all 0.2s ease",
-                  }}
-                >
+                    gap: "5px",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    color: isEmailMode ? "#1b5e20" : (contactInput ? "#7a4b27" : "#8a7060"),
+                    background: isEmailMode ? "#e8f5e9" : (contactInput ? "#f9f2e7" : "#f5efe6"),
+                    padding: "3px 10px",
+                    borderRadius: "14px",
+                    border: isEmailMode ? "1px solid #c8e6c9" : "1px solid #e8ded2",
+                    transition: "all 0.25s ease",
+                    fontFamily: "'Inter', sans-serif"
+                  }}>
+                    <span>{isEmailMode ? "✉️ Email detected" : (contactInput ? "📱 Singapore Mobile" : "📱 +65 or ✉️ Email")}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Integrated Luxury Input Box */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#ffffff",
+                border: isInputFocused ? "1.5px solid #b58e46" : (errors ? "1.5px solid #dc3545" : "1.5px solid #dfcfbc"),
+                borderRadius: "12px",
+                padding: "4px 8px 4px 6px",
+                boxShadow: isInputFocused
+                  ? "0 0 0 4px rgba(205, 154, 80, 0.16), 0 4px 12px rgba(97, 65, 25, 0.08)"
+                  : "0 2px 6px rgba(97, 65, 25, 0.04)",
+                transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                minHeight: "50px",
+                boxSizing: "border-box"
+              }}>
+                {/* Dynamic Left Badge */}
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "7px 12px",
+                  background: isEmailMode
+                    ? "linear-gradient(135deg, #f0f7f2 0%, #e2efe6 100%)"
+                    : "linear-gradient(135deg, #f9f4ed 0%, #f0e5d6 100%)",
+                  borderRadius: "8px",
+                  border: isEmailMode ? "1px solid #c8dec9" : "1px solid #e2d2c0",
+                  color: isEmailMode ? "#2e6a38" : "#5a3717",
+                  fontWeight: "700",
+                  fontSize: "13px",
+                  lineHeight: 1,
+                  whiteSpace: "nowrap",
+                  userSelect: "none",
+                  boxShadow: "inset 0 1px 2px rgba(255,255,255,0.8)",
+                  transition: "all 0.25s ease"
+                }}>
                   {isEmailMode ? (
                     <>
-                      <span>✉️</span>
-                      <span style={{ fontSize: "12px", color: "#614119" }}>Email</span>
+                      <span style={{ fontSize: "14px" }}>✉️</span>
+                      <span style={{ letterSpacing: "0.2px" }}>Email</span>
                     </>
                   ) : (
                     <>
-                      <span>{selectedCountry === "Singapore" ? "🇸🇬" : "🇮🇳"}</span>
-                      <span>{selectedCountry === "Singapore" ? "+65" : "+91"}</span>
-                      {!contactInput && selectedCountry === "Singapore" && (
-                        <span style={{ color: "#8c6b45", fontSize: "12px", fontWeight: "normal" }}>
-                          / ✉️
-                        </span>
-                      )}
+                      <span style={{ fontSize: "14px" }}>{selectedCountry === "Singapore" ? "🇸🇬" : "🇮🇳"}</span>
+                      <span style={{ letterSpacing: "0.4px" }}>{selectedCountry === "Singapore" ? "+65" : "+91"}</span>
                     </>
                   )}
-                </span>
-                <Form.Control
-                  className="forminput custom-placeholder"
+                </div>
+
+                {/* Vertical Divider Line */}
+                <div style={{
+                  width: "1px",
+                  height: "24px",
+                  background: "#e8ded2",
+                  margin: "0 8px"
+                }} />
+
+                {/* Pure Input Element */}
+                <input
                   type={isEmailMode ? "email" : "text"}
                   placeholder={
                     selectedCountry === "Singapore"
-                      ? (isEmailMode ? "Enter your Gmail or Email address" : "Enter 8-digit mobile or Gmail / Email")
+                      ? (isEmailMode ? "Enter your Gmail or Email address" : "Enter 8-digit mobile or email")
                       : "Enter 10-digit mobile number"
                   }
                   value={contactInput}
                   onChange={handleContactChange}
+                  onFocus={() => {
+                    setIsInputFocused(true);
+                    handleMobileFocus();
+                  }}
+                  onBlur={() => setIsInputFocused(false)}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
-                  style={{ borderRadius: "0 6px 6px 0" }}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    outline: "none",
+                    boxShadow: "none",
+                    background: "transparent",
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: "15px",
+                    fontWeight: "500",
+                    color: "#2b1c10",
+                    padding: "8px 4px",
+                    width: "100%",
+                    minWidth: "0"
+                  }}
                 />
+
+                {/* Right side clear button */}
+                {contactInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactInput("");
+                      setPhoneNo("");
+                      setEmailInput("");
+                      setLoginMethod("mobile");
+                      if (errors) setErrors("");
+                    }}
+                    style={{
+                      background: "#f0e7db",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "22px",
+                      height: "22px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#7a5c3e",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      padding: 0,
+                      marginLeft: "6px",
+                      transition: "all 0.2s ease"
+                    }}
+                    title="Clear input"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
+              {/* Discreet, Professional Helper Footer */}
               {selectedCountry === "Singapore" && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "5px", fontSize: "12px", color: "#7a5c3e" }}>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: "7px",
+                  padding: "0 4px",
+                  fontSize: "12px",
+                  fontFamily: "'Inter', sans-serif",
+                  color: "#8a7060"
+                }}>
                   <span>
                     {isEmailMode
-                      ? "✉️ Email mode auto-detected"
-                      : (contactInput ? "📱 Singapore Mobile (+65) detected" : "Enter mobile number or Gmail / Email")}
+                      ? "Enter your valid Gmail or Email address"
+                      : (contactInput ? "Singapore 8-digit mobile number" : "Enter an 8-digit mobile number or Gmail / Email")}
                   </span>
                   {isEmailMode && contactInput && (
-                    <span style={{ color: contactInput.includes("@") && contactInput.includes(".") ? "#28a745" : "#8c5c34", fontWeight: "600" }}>
-                      {contactInput.includes("@") && contactInput.includes(".") ? "✓ Ready" : "Typing email..."}
+                    <span style={{
+                      color: contactInput.includes("@") && contactInput.includes(".") ? "#2e7d32" : "#9e6f3b",
+                      fontWeight: "600",
+                      fontSize: "11.5px"
+                    }}>
+                      {contactInput.includes("@") && contactInput.includes(".") ? "✓ Valid email" : "Typing..."}
                     </span>
                   )}
                   {!isEmailMode && contactInput && (
-                    <span style={{ color: contactInput.length === 8 ? "#28a745" : "#8c5c34", fontWeight: "600" }}>
-                      {contactInput.length}/8 digits
+                    <span style={{
+                      color: contactInput.length === 8 ? "#2e7d32" : "#9e6f3b",
+                      fontWeight: "600",
+                      fontSize: "11.5px"
+                    }}>
+                      {contactInput.length === 8 ? "✓ 8 digits" : `${contactInput.length}/8 digits`}
                     </span>
                   )}
                 </div>
               )}
 
-              {errors && <Form.Text className="text-danger" style={{ display: "block", marginTop: "4px" }}>{errors}</Form.Text>}
+              {errors && (
+                <div style={{
+                  marginTop: "6px",
+                  padding: "0 4px",
+                  fontSize: "12px",
+                  color: "#d32f2f",
+                  fontWeight: "500",
+                  fontFamily: "'Inter', sans-serif"
+                }}>
+                  {errors}
+                </div>
+              )}
             </Form.Group>
 
+            {/* Premium CTA Continue Button */}
             <button
               type="submit"
               disabled={loading}
-              className="custom-button1 w-100"
+              style={{
+                width: "100%",
+                marginTop: "16px",
+                padding: "13px 20px",
+                borderRadius: "12px",
+                border: "none",
+                background: "linear-gradient(103deg, #78451b 0%, #b88f48 50%, #78451b 100%)",
+                backgroundSize: "200% auto",
+                color: "#ffffff",
+                fontFamily: "'Inter', sans-serif",
+                fontSize: "14.5px",
+                fontWeight: "700",
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                boxShadow: "0 6px 18px rgba(120, 69, 27, 0.25)",
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.3s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
+              }}
             >
-              {loading ? "Submitting..." : (isSingapore ? "Continue" : "Get OTP")}
+              {loading ? (
+                <span>Submitting...</span>
+              ) : (
+                <>
+                  <span>{isSingapore ? "Continue" : "Get OTP"}</span>
+                  <span style={{ fontSize: "15px" }}>➔</span>
+                </>
+              )}
             </button>
           </Form>
         </div>

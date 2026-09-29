@@ -50,7 +50,16 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
   useEffect(() => {
    
     if (Array.isArray(data?.customer)) {
-      const majorObject = data?.customer?.find(e => e.major === "Y")
+      const isMajor = (user) => {
+        if (!user) return false;
+        if (user.IsAdult === true || user.IsAdult === "true" || user.major === "Y" || user.isMajor === "Y" || user.isMajor === true) return true;
+        if (user.IsAdult === false || user.IsAdult === "false" || user.major === "N" || user.isMajor === "N" || user.isMajor === false) return false;
+        const d = user.DateOfBirth || user.DateOf_Birth || user.dob || user.DOB;
+        if (!d) return false;
+        const a = calculateAge(d);
+        return a !== null && !isNaN(a) && a >= 18;
+      };
+      const majorObject = data?.customer?.find(e => isMajor(e));
       
       const genderMap = {
         M: "Male",
@@ -58,16 +67,17 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
         O: "Others",
       };
       if (majorObject) {
-        const { Name, Aadharname, Sex, DateOfBirth } = majorObject
+        const { Name, Aadharname, Sex, Gender, DateOfBirth } = majorObject;
+        const mappedGender = genderMap[Sex] || genderMap[Gender] || (Gender === "Male" || Gender === "Female" ? Gender : "") || "";
         const obj = {
-          guardname: Name || Aadharname,
-          guardGender: genderMap[Sex],
+          guardname: Name || Aadharname || "",
+          guardGender: mappedGender,
           guardrelationship: '',
-          guarddob: DateOfBirth,
-        }
-        setIsEdit(true)
-        setFormData(obj)
-        setStoreObj(obj)
+          guarddob: DateOfBirth || "",
+        };
+        setIsEdit(true);
+        setFormData(obj);
+        setStoreObj(obj);
       }
       else{
         setStoreObj({})

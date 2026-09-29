@@ -73,7 +73,7 @@ const resolveDocumentId = (doc) => {
 // import { ErrorSharp } from '@mui/icons-material';
 const Mypage = () => {
   const dispatch = useDispatch();
-  const { selectedCustomerID, selectedCountry, currencySymbol } = useSelector((state) => state.customer || {});
+  const { customer, selectedCustomerID, selectedCountry, currencySymbol } = useSelector((state) => state.customer || {});
   const activeSymbol = currencySymbol || (selectedCountry === "Singapore" ? "S$" : "₹");
   console.log("selectedCustomerID",selectedCustomerID)
 
@@ -437,6 +437,23 @@ const Mypage = () => {
       }
       if (!subscriberData.dob) {
         errors.dob = "dob is required.";
+      } else {
+        const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => {
+          if (!u) return false;
+          if (u.IsAdult === true || u.IsAdult === "true" || u.major === "Y" || u.isMajor === "Y" || u.isMajor === true) return true;
+          if (u.IsAdult === false || u.IsAdult === "false" || u.major === "N" || u.isMajor === "N" || u.isMajor === false) return false;
+          const d = u.DateOfBirth || u.DateOf_Birth || u.dob || u.DOB;
+          if (!d) return false;
+          const a = calculateAge(d);
+          return a !== null && !isNaN(a) && a >= 18;
+        });
+        const isEnrollingNew = !selectedCustomerID || (!selectedCustomerID.Cust_ID && !selectedCustomerID.CustomerID && !selectedCustomerID.Name);
+        if ((selectedId === "minor" || hasExistingMajor) && isEnrollingNew) {
+          const age = calculateAge(subscriberData.dob);
+          if (age !== null && age >= 18) {
+            errors.dob = "Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment.";
+          }
+        }
       }
       if (!subscriberData.email) {
         errors.email = "Email ID is required.";

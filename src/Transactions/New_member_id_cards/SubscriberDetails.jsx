@@ -35,6 +35,20 @@ const Subscriberdetails = ({
   const address1Ref = useRef(null);
   const [formKey, SetformKey] = useState("");
 
+  const isMajor = (user) => {
+    if (!user) return false;
+    if (user.IsAdult === true || user.IsAdult === "true" || user.major === "Y" || user.isMajor === "Y" || user.isMajor === true) {
+      return true;
+    }
+    if (user.IsAdult === false || user.IsAdult === "false" || user.major === "N" || user.isMajor === "N" || user.isMajor === false) {
+      return false;
+    }
+    const dob = user.DateOfBirth || user.DateOf_Birth || user.dob || user.DOB;
+    if (!dob) return false;
+    const age = calculateAge(dob);
+    return age !== null && !isNaN(age) && age >= 18;
+  };
+
   const cleanMobileNumber = (val) => {
     if (!val || typeof val !== "string") return "";
     const trimmed = val.trim();
@@ -215,12 +229,15 @@ const Subscriberdetails = ({
   }, [initialEmail]);
 
   useEffect(() => {
+    const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
+    const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
+
     // enroll new minor
-    if (selectedId === "minor" && !newSubscriber && formData.dob) {
+    if (isEnrollingMinor && !newSubscriber && formData.dob) {
       const age = calculateAge(formData.dob);
 
       if (age >= 18) {
-        setErrors({ dob: "Age must be below 18 for minor enrollment." });
+        setErrors({ dob: "Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment." });
         setIsMinorDisabled(true);
         dispatch(setIsMinorDisable(true));
         setShowGuardianDetails(false);
@@ -231,7 +248,7 @@ const Subscriberdetails = ({
         setShowGuardianDetails(true);
       }
     } else {
-      // Reset states when selectedId is not "minor"
+      // Reset states when not enrolling a minor
       setErrors({});
       // Show guardian details only if age is less than 18
       if (formData.dob) {
@@ -241,7 +258,7 @@ const Subscriberdetails = ({
         setShowGuardianDetails(false);
       }
     }
-  }, [formData.dob, selectedId, newSubscriber]);
+  }, [formData.dob, selectedId, newSubscriber, customer, selectedCustomerID]);
 
   useEffect(() => {
     setSubscriberData(formData);
@@ -613,12 +630,15 @@ const Subscriberdetails = ({
         {errorValidate.dob && (
           <Form.Text className="text-danger">{errorValidate.dob}</Form.Text>
         )}
-
-        {selectedId === "minor" &&
+        {error.dob && (
+          <Form.Text className="text-danger">{error.dob}</Form.Text>
+        )}
+        {!error.dob &&
+          (selectedId === "minor" || (customer && Array.isArray(customer) && customer.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name))) &&
           formData.dob &&
           calculateAge(formData.dob) >= 18 && (
             <Form.Text className="text-danger">
-              Age must be below 18 for minor enrollment.
+              Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment.
             </Form.Text>
           )}
 

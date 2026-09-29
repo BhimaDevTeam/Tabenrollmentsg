@@ -10,6 +10,20 @@ import { useDispatch, useSelector } from "react-redux";
 import { calculateAge } from "../utlis/calculateAge";
 import { Mobileverification, SG_SEARCH_CUSTOMER_API } from "../apiurl";
 
+const isMajor = (user) => {
+  if (!user) return false;
+  if (user.IsAdult === true || user.IsAdult === "true" || user.major === "Y" || user.isMajor === "Y" || user.isMajor === true) {
+    return true;
+  }
+  if (user.IsAdult === false || user.IsAdult === "false" || user.major === "N" || user.isMajor === "N" || user.isMajor === false) {
+    return false;
+  }
+  const dob = user.DateOfBirth || user.DateOf_Birth || user.dob || user.DOB;
+  if (!dob) return false;
+  const age = calculateAge(dob);
+  return age !== null && !isNaN(age) && age >= 18;
+};
+
 const MobileVer = () => {
   const { customer, selectedCountry } = useSelector(state => state.customer || {});
   const dispatch = useDispatch();
@@ -164,8 +178,14 @@ const MobileVer = () => {
         }
 
         setCustomerData(mapped);
-        const majorCustomer = mapped.find(m => m.IsAdult === true);
-        if (majorCustomer) setMajorSubscriber(majorCustomer);
+        const majorCustomer = mapped.find(m => isMajor(m));
+        if (majorCustomer) {
+          setMajorSubscriber(majorCustomer);
+          setShowMajor(false);
+        } else {
+          setMajorSubscriber(null);
+          setShowMajor(true);
+        }
 
         setSelectedCustomer(mapped);
         dispatch(setCustomer(mapped));
@@ -250,9 +270,10 @@ const MobileVer = () => {
       const verifiedCustomers = Array.isArray(uniqueSubscribers)
         ? uniqueSubscribers.filter(item => item.Isaadharverified === 1 || item.Cust_ID || item.CustomerID || item.Name)
         : [];
-      const majorCustomer = verifiedCustomers.find(item => calculateAge(item.DateOfBirth) >= 18);
+      const majorCustomer = verifiedCustomers.find(item => isMajor(item));
       if (majorCustomer) {
         setMajorSubscriber(majorCustomer);
+        setShowMajor(false);
       }
     
       if (verifiedCustomers.length > 0) {
@@ -261,7 +282,7 @@ const MobileVer = () => {
         dispatch(setIsOtherCustomer(false));
 
         const verified1 = Array.isArray(data) 
-          ? data.filter(item => (item.Isaadharverified === 0 && item.CustomerType === 'V' && calculateAge(item.DateOfBirth) <= 18)) 
+          ? data.filter(item => (item.Isaadharverified === 0 && item.CustomerType === 'V' && !isMajor(item))) 
           : [];
           
         const combinedVerifiedCustomers = [...verifiedCustomers, ...verified1];
@@ -272,10 +293,11 @@ const MobileVer = () => {
         }
       } else {
         const specialCustomers = Array.isArray(data) ? data.filter(item => item.CustomerType === "V") : [];
-        const majorCustomer2 = specialCustomers.find(item => calculateAge(item.DateOfBirth) >= 18);
+        const majorCustomer2 = specialCustomers.find(item => isMajor(item));
 
         if (majorCustomer2) {
           setMajorSubscriber(majorCustomer2);
+          setShowMajor(false);
         }
 
         if (specialCustomers.length > 0) {
@@ -322,13 +344,21 @@ const MobileVer = () => {
   const isOtherCustomers = selectedCustomer && selectedCustomer.every(customer => customer.Isaadharverified !== 1 && customer.CustomerType !== "V");
 
   useEffect(() => {
-    if (customer.length) {
-      const arrFilter = customer.filter(user => calculateAge(user.DateOfBirth) >= 18);
-      if (arrFilter.length) {
+    if (customer && customer.length) {
+      const existingMajor = customer.find(user => isMajor(user));
+      if (existingMajor) {
         setShowMajor(false);
+        setMajorSubscriber(existingMajor);
+      } else {
+        setShowMajor(true);
+        setMajorSubscriber(null);
       }
     }
   }, [customer]);
+
+  const hasExistingMajor = Boolean(
+    majorSubscriber || (Array.isArray(customer) && customer.some(u => isMajor(u)))
+  );
 
   const dropdownContainerStyle = {
     position: 'relative',
@@ -401,11 +431,10 @@ const MobileVer = () => {
                   {/* Create a shallow copy of the customer array before sorting */}
                   {[...customer]
                     .sort((a, b) => {
-                      const ageA = calculateAge(a.DateOfBirth);
-                      const ageB = calculateAge(b.DateOfBirth);
-                      if (ageA >= 18 && ageB < 18) return -1;
-                      if (ageA < 18 && ageB >= 18) return 1;
-                      return new Date(b.UpdatedDate) - new Date(a.UpdatedDate);
+                      const majorA = isMajor(a) ? 1 : 0;
+                      const majorB = isMajor(b) ? 1 : 0;
+                      if (majorA !== majorB) return majorB - majorA;
+                      return new Date(b.UpdatedDate || 0) - new Date(a.UpdatedDate || 0);
                     })
                     .map(user => (
                       <li 
@@ -416,23 +445,23 @@ const MobileVer = () => {
                           toggleDropdown();
                         }}
                       >
-                        <strong>{user.Name || user.Cust_Name || user.CustomerName || "Subscriber"}</strong>{user.Address1 ? ` – ${user.Address1}` : ""} – <span>({calculateAge(user.DateOfBirth) >= 18 ? "Major" : "Minor"})</span>
+                        <strong>{user.Name || user.Cust_Name || user.CustomerName || "Subscriber"}</strong>{user.Address1 ? ` – ${user.Address1}` : ""} – <span>({isMajor(user) ? "Major" : "Minor"})</span>
 
                       </li>
                     ))}
-                  {isOtherCustomers ? (
+                  {hasExistingMajor ? (
+                    <li 
+                      style={dropdownOptionStyle} 
+                      onClick={() => { handleCustomerSelect('minor'); toggleDropdown(); }}
+                    >
+                      Enroll a minor
+                    </li>
+                  ) : (
                     <li 
                       style={dropdownOptionStyle} 
                       onClick={() => { handleCustomerSelect('new'); toggleDropdown(); }}
                     >
                       Enroll a new subscriber
-                    </li>
-                  ) : (
-                    <li 
-                      style={dropdownOptionStyle} 
-                      onClick={() => { handleCustomerSelect(showMajor ? 'new' : 'minor'); toggleDropdown(); }}
-                    >
-                      {showMajor ? 'Enroll a new subscriber' : 'Enroll a minor'}
                     </li>
                   )}
                 </ul>

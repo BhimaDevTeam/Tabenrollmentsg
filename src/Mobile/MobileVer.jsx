@@ -103,6 +103,10 @@ const MobileVer = () => {
         const firstRecord = Array.isArray(crmList) && crmList.length > 0 ? crmList[0] : null;
         console.log("SG CRM firstRecord:", firstRecord);
 
+        if (firstRecord?.EmailID && typeof window !== "undefined") {
+          localStorage.setItem("customerEmail", firstRecord.EmailID);
+        }
+
         if (!firstRecord || !Array.isArray(firstRecord.Names) || firstRecord.Names.length === 0) {
           // No existing customer (or API failed) — go to new enrollment
           dispatch(setCustomer([]));
@@ -212,6 +216,10 @@ const MobileVer = () => {
       }
 
       const res = await response.json();
+      const fetchedEmail = res?.primaryRecord?.EmailID || res?.primaryRecord?.email_id || res?.customers?.[0]?.EmailID || res?.customers?.[0]?.email_id || res?.draftEnrollments?.[0]?.EmailID || "";
+      if (fetchedEmail && typeof window !== "undefined") {
+        localStorage.setItem("customerEmail", fetchedEmail);
+      }
       let rawList = [];
       if (Array.isArray(res)) {
         rawList = res;
@@ -326,17 +334,27 @@ const MobileVer = () => {
   };
 // console.log("customerData",customerData)
   const handleCustomerSelect = (selectedId) => {
+    const parentEmail =
+      email ||
+      majorSubscriber?.EmailID ||
+      majorSubscriber?.email_id ||
+      majorSubscriber?.email ||
+      customer?.find(u => isMajor(u))?.EmailID ||
+      customer?.find(u => u.EmailID)?.EmailID ||
+      (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "") ||
+      "";
+
     if (selectedId === "minor") {
       dispatch(setSelectedCustomerID({}));
-      navigate(`/Mypage`, { state: { phoneNo, email, loginMethod, selectedId: 'minor', aadharverified: 0, selectedScheme, branch } });
+      navigate(`/Mypage`, { state: { phoneNo, email: parentEmail, loginMethod, selectedId: 'minor', aadharverified: 0, selectedScheme, branch } });
     } else if (selectedId === "new") {
       dispatch(setIsOtherCustomer(false));
-      navigate(`/Mypage`, { state: { phoneNo, email, loginMethod, selectedId: 'new', aadharverified: 0, selectedScheme, branch } });
+      navigate(`/Mypage`, { state: { phoneNo, email: parentEmail || email, loginMethod, selectedId: 'new', aadharverified: 0, selectedScheme, branch } });
     } else {
       const selected = selectedCustomer?.find(item => item.ID == selectedId);
       if (selected) {
         dispatch(setSelectedCustomerID(selected));
-        navigate(`/Mypage`, { state: { customerData: [selected], phoneNo, email, loginMethod, aadharverified: selected.Isaadharverified || 0, aadharNo: selected.AadharNo || "", selectedScheme, branch } });
+        navigate(`/Mypage`, { state: { customerData: [selected], phoneNo, email: selected.EmailID || selected.email_id || selected.email || parentEmail || email, loginMethod, aadharverified: selected.Isaadharverified || 0, aadharNo: selected.AadharNo || "", selectedScheme, branch } });
       }
     }
   };

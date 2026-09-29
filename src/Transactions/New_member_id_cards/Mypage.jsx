@@ -98,6 +98,9 @@ const Mypage = () => {
     passedEmail ||
     (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
     (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "") ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.EmailID) ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email_id) ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email) ||
     "";
 
   const isBase64 = (str) => {

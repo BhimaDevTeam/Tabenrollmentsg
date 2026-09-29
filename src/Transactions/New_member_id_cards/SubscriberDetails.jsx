@@ -56,10 +56,22 @@ const Subscriberdetails = ({
     return trimmed;
   };
 
+  const majorSubscriber = Array.isArray(customer) ? customer.find(u => isMajor(u)) : null;
   const initialEmail =
     passedEmail ||
     (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
-    (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "");
+    (typeof window !== "undefined" ? localStorage.getItem("customerEmail") || "" : "") ||
+    majorSubscriber?.EmailID ||
+    majorSubscriber?.email_id ||
+    majorSubscriber?.email ||
+    majorSubscriber?.Email ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.EmailID) ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email_id) ||
+    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email) ||
+    selectedCustomerID?.EmailID ||
+    selectedCustomerID?.email_id ||
+    selectedCustomerID?.email ||
+    "";
   const initialMobile = cleanMobileNumber(phoneNo);
 
   const [areaName, setAreas] = useState([]);
@@ -222,15 +234,16 @@ const Subscriberdetails = ({
     }
   }, [selectedId, selectedOption, initialEmail]);
 
-  useEffect(() => {
-    if (initialEmail && !formData.email) {
-      setFormData((prev) => ({ ...prev, email: initialEmail }));
-    }
-  }, [initialEmail]);
+  const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
+  const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
 
   useEffect(() => {
-    const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
-    const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
+    if (initialEmail && (!formData.email || isEnrollingMinor || selectedId === "minor")) {
+      setFormData((prev) => ({ ...prev, email: initialEmail }));
+    }
+  }, [initialEmail, isEnrollingMinor, selectedId]);
+
+  useEffect(() => {
 
     // enroll new minor
     if (isEnrollingMinor && !newSubscriber && formData.dob) {
@@ -697,7 +710,7 @@ const Subscriberdetails = ({
 
         <Form.Group controlId="formEmail" className="form-group">
           <Form.Label className="form-label">
-            Email-ID:{Boolean(initialEmail) && <span style={{ fontSize: "11px", color: "#6c757d", marginLeft: "6px" }}>(Verified)</span>}
+            Email-ID:{(Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor") && <span style={{ fontSize: "11px", color: "#6c757d", marginLeft: "6px" }}>(Verified)</span>}
           </Form.Label>
           <Form.Control
             type="email"
@@ -706,9 +719,9 @@ const Subscriberdetails = ({
             value={formData.email || initialEmail || ""}
             onChange={handleEmailChange}
             onBlur={handleEmailBlur}
-            disabled={isminorDisabled || Boolean(initialEmail)}
-            readOnly={Boolean(initialEmail)}
-            style={Boolean(initialEmail) ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" } : {}}
+            disabled={isminorDisabled || Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor"}
+            readOnly={Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor"}
+            style={Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor" ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" } : {}}
           />
           {errorValidate.email && (
             <Form.Text className="text-danger">{errorValidate.email}</Form.Text>

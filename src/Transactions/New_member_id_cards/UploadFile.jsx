@@ -31,9 +31,23 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
 
   const insAmt = Number(amount || 0);
   const PAN_THRESHOLD = 143000;
-  const isHighValue = insAmt >= PAN_THRESHOLD;
+  const SG_NRIC_THRESHOLD = 20000;
+  const isHighValue = isSingapore ? insAmt >= SG_NRIC_THRESHOLD : insAmt >= PAN_THRESHOLD;
   const hasPanUploaded = (uploadedDocs || []).some((doc) => doc.Type === "PAN" || doc.Type === "NRIC");
-  const isPanRequiredManually = isHighValue && !hasPanUploaded && !isSingapore;
+  const hasNricUploaded = (uploadedDocs || []).some((doc) =>
+    String(doc.Type || doc.type || "").toUpperCase() === "NRIC" ||
+    String(doc.Type || doc.type || "").toUpperCase() === "FIN" ||
+    Number(doc.documentTypeId || doc.DocumentTypeID) === 25 ||
+    Number(doc.documentTypeId || doc.DocumentTypeID) === 27 ||
+    /^[STFGM][0-9]{7}[A-Z]$/i.test(doc.Number || doc.documentNo || doc.Name || "")
+  ) || (selectedCustomerID?.Documents || []).some((doc) =>
+    String(doc.Type || doc.type || "").toUpperCase() === "NRIC" ||
+    String(doc.Type || doc.type || "").toUpperCase() === "FIN" ||
+    Number(doc.documentTypeId || doc.DocumentTypeID) === 25 ||
+    Number(doc.documentTypeId || doc.DocumentTypeID) === 27
+  );
+  const isPanRequiredManually = !isSingapore && isHighValue && !hasPanUploaded;
+  const isNricRequiredManually = isSingapore && isHighValue && !hasNricUploaded;
 
   const { data: sgDocList } = useSWR(
     isSingapore ? `${collectionApi}/doclist?country=SG` : null,
@@ -420,7 +434,14 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
             </Alert>
           )}
 
-          {(aadharverified !== 1 || isPanRequiredManually || availableTypes.length > 0) && (
+          {isNricRequiredManually && (
+            <Alert variant="warning" className="mb-3" style={{ borderLeft: "5px solid #dc3545", backgroundColor: "#fff3cd", color: "#856404" }}>
+              <i className="bi bi-exclamation-triangle-fill" style={{ marginRight: "8px", color: "#dc3545" }}></i>
+              <strong>NRIC Card Mandatory!</strong> Installment amount is {formatCurrency(insAmt, activeSymbol)} ({formatCurrency(20000, activeSymbol)} &amp; above). NRIC Card is mandatory. If not already uploaded, please upload your NRIC Card below.
+            </Alert>
+          )}
+
+          {(aadharverified !== 1 || isPanRequiredManually || isNricRequiredManually || availableTypes.length > 0) && (
             <>
               <Row className="mb-3 align-items-end upload-document-items">
                 <Col md={4}>

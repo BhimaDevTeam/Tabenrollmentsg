@@ -1289,9 +1289,30 @@ const Mypage = () => {
 
       const insAmt = Number(membershipData.installmentAmount || 0);
       const PAN_THRESHOLD = 143000;
+      const SG_NRIC_THRESHOLD = 20000;
       const hasPan = (uploadedDocs || []).some(d => d.Type === "PAN" || d.Type === "NRIC") || (alldocs || []).some(d => d.documentTypeId === 25);
       if (!isSingapore && insAmt >= PAN_THRESHOLD && !hasPan) {
         alert(`For installment amount ₹${insAmt.toLocaleString("en-IN")} (₹1,43,000 & above), PAN Card is mandatory. Please upload your PAN Card.`);
+        return;
+      }
+
+      const hasNric = (uploadedDocs || []).some(d =>
+        String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+        String(d.Type || d.type || "").toUpperCase() === "FIN" ||
+        Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
+        Number(d.documentTypeId || d.DocumentTypeID) === 27 ||
+        /^[STFGM][0-9]{7}[A-Z]$/i.test(d.Number || d.documentNo || d.Name || "")
+      ) || (alldocs || []).some(d =>
+        Number(d.documentTypeId) === 25 || Number(d.documentTypeId) === 27
+      ) || (selectedCustomerID?.Documents || []).some(d =>
+        String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+        String(d.Type || d.type || "").toUpperCase() === "FIN" ||
+        Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
+        Number(d.documentTypeId || d.DocumentTypeID) === 27
+      );
+
+      if (isSingapore && insAmt >= SG_NRIC_THRESHOLD && !hasNric) {
+        alert(`For installment amount $${insAmt.toLocaleString()} ($20,000 & above), NRIC Card is mandatory. Please upload your NRIC Card.`);
         return;
       }
 
@@ -1902,6 +1923,37 @@ const Mypage = () => {
     // Only require address proof for India if not Aadhaar e-verified AND no documents uploaded
     if (!isSingapore && !isAddressUploaded && aadharverified !== 1) {
       toast.error("Please Upload at least one Address Proof document");
+      setExpanded("uploaddoc-header");
+      return false;
+    }
+
+    const insAmt = Number(membershipData.installmentAmount || 0);
+    const PAN_THRESHOLD = 143000;
+    const hasPan = (uploadedDocs || []).some(d => d.Type === "PAN" || d.Type === "NRIC") || (alldocs || []).some(d => d.documentTypeId === 25);
+    if (!isSingapore && insAmt >= PAN_THRESHOLD && !hasPan) {
+      toast.error(`For installment amount ₹${insAmt.toLocaleString("en-IN")} (₹1,43,000 & above), PAN Card is mandatory. Please upload your PAN Card.`);
+      setExpanded("uploaddoc-header");
+      return false;
+    }
+
+    const SG_NRIC_THRESHOLD = 20000;
+    const hasNric = (uploadedDocs || []).some(d =>
+      String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+      String(d.Type || d.type || "").toUpperCase() === "FIN" ||
+      Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
+      Number(d.documentTypeId || d.DocumentTypeID) === 27 ||
+      /^[STFGM][0-9]{7}[A-Z]$/i.test(d.Number || d.documentNo || d.Name || "")
+    ) || (alldocs || []).some(d =>
+      Number(d.documentTypeId) === 25 || Number(d.documentTypeId) === 27
+    ) || (selectedCustomerID?.Documents || []).some(d =>
+      String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+      String(d.Type || d.type || "").toUpperCase() === "FIN" ||
+      Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
+      Number(d.documentTypeId || d.DocumentTypeID) === 27
+    );
+
+    if (isSingapore && insAmt >= SG_NRIC_THRESHOLD && !hasNric) {
+      toast.error(`For installment amount $${insAmt.toLocaleString()} ($20,000 & above), NRIC Card is mandatory. Please upload your NRIC Card.`);
       setExpanded("uploaddoc-header");
       return false;
     }

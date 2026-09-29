@@ -237,13 +237,9 @@ const Subscriberdetails = ({
   const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
   const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
 
-  const isMinorTarget =
-    selectedId === "minor" ||
-    isEnrollingMinor ||
-    showGuardianDetails ||
-    (selectedCustomerID && !isMajor(selectedCustomerID)) ||
-    (customer && Array.isArray(customer) && customer.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name)) ||
-    (formData.dob && calculateAge(formData.dob) !== null && calculateAge(formData.dob) < 18);
+  // isMinorTarget: true whenever we are enrolling a minor subscriber
+  // Must be evaluated eagerly (not dependent on formData.dob which starts empty)
+  const isMinorTarget = selectedId === "minor" || isEnrollingMinor;
 
   const getMinMinorDob = () => {
     const d = new Date();

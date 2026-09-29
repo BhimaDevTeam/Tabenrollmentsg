@@ -25,7 +25,7 @@ const Subscriberdetails = ({
   setFlag,
   onEmailLeave,
 }) => {
-  const { customer, selectedCustomerID, isOtherCustomer, selectedCountry } = useSelector(
+  const { customer: customerList, selectedCustomerID, isOtherCustomer, selectedCountry } = useSelector(
     (state) => state.customer || {}
   );
   const isSingapore = selectedCountry === "Singapore";
@@ -56,7 +56,7 @@ const Subscriberdetails = ({
     return trimmed;
   };
 
-  const majorSubscriber = Array.isArray(customer) ? customer.find(u => isMajor(u)) : null;
+  const majorSubscriber = Array.isArray(customerList) ? customerList.find(u => isMajor(u)) : null;
   const initialEmail =
     passedEmail ||
     (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
@@ -65,20 +65,45 @@ const Subscriberdetails = ({
     majorSubscriber?.email_id ||
     majorSubscriber?.email ||
     majorSubscriber?.Email ||
-    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.EmailID) ||
-    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email_id) ||
-    (Array.isArray(customer) && customer.find(u => u?.EmailID || u?.email_id || u?.email)?.email) ||
+    (Array.isArray(customerList) && customerList.find(u => u?.EmailID || u?.email_id || u?.email)?.EmailID) ||
+    (Array.isArray(customerList) && customerList.find(u => u?.EmailID || u?.email_id || u?.email)?.email_id) ||
+    (Array.isArray(customerList) && customerList.find(u => u?.EmailID || u?.email_id || u?.email)?.email) ||
     selectedCustomerID?.EmailID ||
     selectedCustomerID?.email_id ||
     selectedCustomerID?.email ||
     "";
   const initialMobile = cleanMobileNumber(phoneNo);
 
+  const normalizeGender = (g) => {
+    if (!g) return "";
+    const str = String(g).trim().toUpperCase();
+    if (str === "M" || str.startsWith("MALE")) return "Male";
+    if (str === "F" || str.startsWith("FEMALE")) return "Female";
+    if (str === "O" || str.startsWith("OTHER")) return "Others";
+    return "";
+  };
+
+  const initialCustObj = (selectedCustomerID && (selectedCustomerID.Name || selectedCustomerID.CustomerID || selectedCustomerID.Gender || Object.keys(selectedCustomerID).length > 0))
+    ? selectedCustomerID
+    : (Array.isArray(customerData) && customerData.length > 0 ? customerData[0] : (Array.isArray(customerList) && customerList.length > 0 ? customerList[0] : null));
+
+  const initialRawGender =
+    newSubscriber?.Gender ||
+    newSubscriber?.gender ||
+    newSubscriber?.Sex ||
+    newSubscriber?.Names?.[0]?.Gender ||
+    initialCustObj?.Gender ||
+    initialCustObj?.gender ||
+    initialCustObj?.Sex ||
+    initialCustObj?.Names?.[0]?.Gender ||
+    "";
+  const initialGender = normalizeGender(initialRawGender);
+
   const [areaName, setAreas] = useState([]);
   const [formData, setFormData] = useState({
     mobileNo: initialMobile,
     subscriberName: "",
-    gender: "",
+    gender: initialGender || "",
     address1: "",
     address2: "",
     address3: "",
@@ -98,11 +123,14 @@ const Subscriberdetails = ({
     if (newSubscriber) {
       // Auto-fill the form and disable fields for newSubscriber
 
-      const genderMap = {
-        M: "Male",
-        F: "Female",
-        O: "Others",
-      };
+      const newSubRawGender =
+        newSubscriber?.Gender ||
+        newSubscriber?.gender ||
+        newSubscriber?.Sex ||
+        newSubscriber?.sex ||
+        newSubscriber?.Names?.[0]?.Gender ||
+        "";
+      const newSubGender = normalizeGender(newSubRawGender);
 
       // Merge Address1, Address2, and Address3 into a single address
       const mergedAddress = [
@@ -133,7 +161,7 @@ const Subscriberdetails = ({
           ...prevFormData,
           mobileNo: cleanMobileNumber(newSubscriber.MobileNo) || initialMobile || cleanMobileNumber(prevFormData.mobileNo) || "",
           subscriberName: newSubscriber.Cust_Name || newSubscriber.CustomerName || newSubscriber.Name || prevFormData.subscriberName || "",
-          gender: genderMap[newSubscriber.Gender] || genderMap[newSubscriber.Sex] || prevFormData.gender || "",
+          gender: newSubGender || prevFormData.gender || "",
           address1: userEnteredAddress ? userEnteredAddress : ekycAddress,
           permanentAddress: ekycAddress,
           area: newSubscriber.Locality || newSubscriber.Address3 || prevFormData.area || "",
@@ -150,14 +178,22 @@ const Subscriberdetails = ({
       setAddressInput((prevInput) => (prevInput && prevInput.trim() ? prevInput : ekycAddress));
     } else {
       // Handle customerData
-      const customer = selectedCustomerID;
+      const customer = (selectedCustomerID && (selectedCustomerID.Name || selectedCustomerID.CustomerID || selectedCustomerID.Gender || Object.keys(selectedCustomerID).length > 0))
+        ? selectedCustomerID
+        : (Array.isArray(customerData) && customerData.length > 0 ? customerData[0] : (Array.isArray(customerList) && customerList.length > 0 ? customerList[0] : null));
+
       if (customer) {
-        const genderMap = {
-          M: "Male",
-          F: "Female",
-          O: "Others",
-        };
-        
+        const custRawGender =
+          customer.Gender ||
+          customer.gender ||
+          customer.Sex ||
+          customer.sex ||
+          customer.Names?.[0]?.Gender ||
+          customer.Names?.[0]?.gender ||
+          customer.Names?.[0]?.Sex ||
+          "";
+        const custGender = normalizeGender(custRawGender);
+
         setArea(customer.Locality || customer.Address3 || "");
 
         // Merge Address1, Address2, and Address3 into a single address
@@ -178,7 +214,7 @@ const Subscriberdetails = ({
             mobileNo: cleanMobileNumber(customer.MobileNo || customer.Mobile_No) || initialMobile || cleanMobileNumber(prevFormData.mobileNo) || "",
             subscriberName:
               customer.Cust_Name || customer.CustomerName || customer.Name || customer.Aadharname || prevFormData.subscriberName || "",
-            gender: genderMap[customer.Gender] || genderMap[customer.Sex] || prevFormData.gender || "",
+            gender: custGender || prevFormData.gender || "",
             address1: userEnteredAddress ? userEnteredAddress : (mergedAddress || ""),
             permanentAddress: isAadhaarVerified ? (mergedAddress || "") : (prevFormData.permanentAddress || ""),
             area: customer.Locality || customer.Address3 || prevFormData.area || "",
@@ -205,7 +241,7 @@ const Subscriberdetails = ({
       }
     }
     SetformKey(Math.random());
-  }, [customer, phoneNo, age, setShowGuardianDetails, newSubscriber]);
+  }, [customerList, selectedCustomerID, customerData, phoneNo, age, setShowGuardianDetails, newSubscriber]);
 
   // just for check delete later
   useEffect(() => {
@@ -234,7 +270,7 @@ const Subscriberdetails = ({
     }
   }, [selectedId, selectedOption, initialEmail]);
 
-  const hasExistingMajor = customer && Array.isArray(customer) && customer.some((u) => isMajor(u));
+  const hasExistingMajor = customerList && Array.isArray(customerList) && customerList.some((u) => isMajor(u));
   const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
 
   // isMinorTarget: true whenever we are enrolling a minor subscriber
@@ -293,7 +329,7 @@ const Subscriberdetails = ({
         setShowGuardianDetails(false);
       }
     }
-  }, [formData.dob, selectedId, newSubscriber, customer, selectedCustomerID]);
+  }, [formData.dob, selectedId, newSubscriber, customerList, selectedCustomerID]);
 
   useEffect(() => {
     setSubscriberData(formData);
@@ -671,7 +707,7 @@ const Subscriberdetails = ({
           <Form.Text className="text-danger">{error.dob}</Form.Text>
         )}
         {!error.dob &&
-          (selectedId === "minor" || (customer && Array.isArray(customer) && customer.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name))) &&
+          (selectedId === "minor" || (customerList && Array.isArray(customerList) && customerList.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name))) &&
           formData.dob &&
           calculateAge(formData.dob) >= 18 && (
             <Form.Text className="text-danger">
@@ -693,7 +729,7 @@ const Subscriberdetails = ({
               className="gender-option mx-2 "
               disabled={
                 isminorDisabled ||
-                (flag.gender ? false : formData.gender?.length)
+                (isSingapore ? false : (flag.gender ? false : formData.gender?.length))
               }
             />
             <Form.Check
@@ -707,7 +743,7 @@ const Subscriberdetails = ({
               className="gender-option mx-2 "
               disabled={
                 isminorDisabled ||
-                (flag.gender ? false : formData.gender?.length)
+                (isSingapore ? false : (flag.gender ? false : formData.gender?.length))
               }
             />
             <Form.Check
@@ -721,7 +757,7 @@ const Subscriberdetails = ({
               className="gender-option mx-2 "
               disabled={
                 isminorDisabled ||
-                (flag.gender ? false : formData.gender?.length)
+                (isSingapore ? false : (flag.gender ? false : formData.gender?.length))
               }
             />
           </div>

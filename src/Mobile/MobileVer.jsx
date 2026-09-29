@@ -151,6 +151,7 @@ const MobileVer = () => {
           });
 
           mapped.push({
+            ...nameEntry,
             ID: `${firstRecord.CustomerID}_${idx}`,
             CustomerID: firstRecord.CustomerID,
             Name: nameEntry.Name,
@@ -161,6 +162,9 @@ const MobileVer = () => {
             IsAdult: nameEntry.IsAdult,
             IsPrimary: nameEntry.IsPrimary,
             IsMembership: nameEntry.IsMembership,
+            BranchCode: nameEntry.BranchCode || "",
+            Gender: nameEntry.Gender || "",
+            Sex: nameEntry.Gender || "",
             major: nameEntry.IsAdult ? "Y" : "N",
             Isaadharverified: (docs.some(d => d.IsVerified) || firstRecord.IsAadharVerified) ? 1 : 0,
             Address1: primaryAddr.Address1 || "",
@@ -170,6 +174,7 @@ const MobileVer = () => {
             PinCode: primaryAddr.PinCode || "",
             CountryCode: primaryAddr.CountryCode || "SG",
             CountryName: primaryAddr.CountryName || "Singapore",
+            AddressType: primaryAddr.AddressType || "office",
             Addresses: nameEntry.Addresses || [],
             Documents: docs,
             SourceMode: firstRecord.SourceMode || "Vrudhi",

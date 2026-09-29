@@ -1060,7 +1060,7 @@ const Mypage = () => {
 
   const saveCustomerToCrm = async (overridePhoto) => {
     try {
-      const cleanBranch = getCleanBranch(branch || membershipData.branch);
+      const cleanBranch = getCleanBranch(branch || membershipData.branch || localStorage.getItem("decodedBranch")) || "KRM";
       const isSg = selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN";
       const cCode = isSg ? "SG" : "IN";
       const cName = isSg ? "Singapore" : "India";
@@ -1161,8 +1161,17 @@ const Mypage = () => {
 
       const docList = [...fileDocs, ...remoteDocs];
 
+      const rawGender = subscriberData.gender || selectedCustomerID?.Gender || selectedCustomerID?.Sex || "";
+      const genderCode = String(rawGender).trim().toUpperCase().startsWith("F")
+        ? "F"
+        : String(rawGender).trim().toUpperCase().startsWith("O")
+          ? "O"
+          : "M";
+
       const crmCustomerPayload = {
         CustomerID: selectedCustomerID?.CustomerID || null,
+        BranchCode: cleanBranch || selectedCustomerID?.BranchCode || "KRM",
+        Gender: genderCode,
         MobileNo: (subscriberData.mobileNo && !subscriberData.mobileNo.includes("@") && !/[a-zA-Z]/.test(subscriberData.mobileNo))
           ? subscriberData.mobileNo
           : (phone && !phone.includes("@") && !/[a-zA-Z]/.test(phone)) ? phone : "",
@@ -1180,7 +1189,7 @@ const Mypage = () => {
         CountryCode: cCode,
         CountryName: cName,
         PinCode: subscriberData.pinCode || "",
-        AddressType: "HOME",
+        AddressType: subscriberData.addressType || selectedCustomerID?.AddressType || "office",
         Documents: docList,
       };
 

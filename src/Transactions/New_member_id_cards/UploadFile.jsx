@@ -40,11 +40,6 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
     Number(doc.documentTypeId || doc.DocumentTypeID) === 25 ||
     Number(doc.documentTypeId || doc.DocumentTypeID) === 27 ||
     /^[STFGM][0-9]{7}[A-Z]$/i.test(doc.Number || doc.documentNo || doc.Name || "")
-  ) || (selectedCustomerID?.Documents || []).some((doc) =>
-    String(doc.Type || doc.type || "").toUpperCase() === "NRIC" ||
-    String(doc.Type || doc.type || "").toUpperCase() === "FIN" ||
-    Number(doc.documentTypeId || doc.DocumentTypeID) === 25 ||
-    Number(doc.documentTypeId || doc.DocumentTypeID) === 27
   );
   const isPanRequiredManually = !isSingapore && isHighValue && !hasPanUploaded;
   const isNricRequiredManually = isSingapore && isHighValue && !hasNricUploaded;

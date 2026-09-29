@@ -898,6 +898,7 @@ const Mypage = () => {
           file: data.file,
           typeCode: data.typeCode,
           Type: docTypeMapped,
+          _locallyUploaded: true,
         },
       ]);
 
@@ -925,8 +926,18 @@ const Mypage = () => {
   // Delete a locally-uploaded document (never deletes API-fetched docs)
   const handleDeleteDoc = (docToDelete) => {
     if (!docToDelete._locallyUploaded) return;
+    const targetDocId = Number(docToDelete.DocumentID || docToDelete.documentTypeId || 0);
+    const targetDocNo = String(docToDelete.documentNo || docToDelete.Number || docToDelete.Name || "").trim().toUpperCase();
+
     setUploadedDocs((prev) => prev.filter((d) => d !== docToDelete));
-    setAllDocs((prev) => prev.filter((d) => !(d._locallyUploaded && d.documentTypeId === docToDelete.documentTypeId && d.documentNo === docToDelete.documentNo)));
+    setAllDocs((prev) => prev.filter((d) => {
+      if (d === docToDelete) return false;
+      const dId = Number(d.DocumentID || d.documentTypeId || 0);
+      const dNo = String(d.documentNo || d.Number || d.Name || "").trim().toUpperCase();
+      if (targetDocNo && dNo && targetDocNo === dNo) return false;
+      if (targetDocId && dId && targetDocId === dId && (!targetDocNo || targetDocNo === dNo)) return false;
+      return true;
+    }));
   };
 
   // console.log("checking", [
@@ -1290,7 +1301,11 @@ const Mypage = () => {
       const insAmt = Number(membershipData.installmentAmount || 0);
       const PAN_THRESHOLD = 143000;
       const SG_NRIC_THRESHOLD = 20000;
-      const hasPan = (uploadedDocs || []).some(d => d.Type === "PAN" || d.Type === "NRIC") || (alldocs || []).some(d => d.documentTypeId === 25);
+      const hasPan = (uploadedDocs || []).some(d =>
+        String(d.Type || d.type || "").toUpperCase() === "PAN" ||
+        String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+        Number(d.documentTypeId || d.DocumentTypeID) === 25
+      );
       if (!isSingapore && insAmt >= PAN_THRESHOLD && !hasPan) {
         alert(`For installment amount ₹${insAmt.toLocaleString("en-IN")} (₹1,43,000 & above), PAN Card is mandatory. Please upload your PAN Card.`);
         return;
@@ -1302,13 +1317,6 @@ const Mypage = () => {
         Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
         Number(d.documentTypeId || d.DocumentTypeID) === 27 ||
         /^[STFGM][0-9]{7}[A-Z]$/i.test(d.Number || d.documentNo || d.Name || "")
-      ) || (alldocs || []).some(d =>
-        Number(d.documentTypeId) === 25 || Number(d.documentTypeId) === 27
-      ) || (selectedCustomerID?.Documents || []).some(d =>
-        String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
-        String(d.Type || d.type || "").toUpperCase() === "FIN" ||
-        Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
-        Number(d.documentTypeId || d.DocumentTypeID) === 27
       );
 
       if (isSingapore && insAmt >= SG_NRIC_THRESHOLD && !hasNric) {
@@ -1929,7 +1937,11 @@ const Mypage = () => {
 
     const insAmt = Number(membershipData.installmentAmount || 0);
     const PAN_THRESHOLD = 143000;
-    const hasPan = (uploadedDocs || []).some(d => d.Type === "PAN" || d.Type === "NRIC") || (alldocs || []).some(d => d.documentTypeId === 25);
+    const hasPan = (uploadedDocs || []).some(d =>
+      String(d.Type || d.type || "").toUpperCase() === "PAN" ||
+      String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
+      Number(d.documentTypeId || d.DocumentTypeID) === 25
+    );
     if (!isSingapore && insAmt >= PAN_THRESHOLD && !hasPan) {
       toast.error(`For installment amount ₹${insAmt.toLocaleString("en-IN")} (₹1,43,000 & above), PAN Card is mandatory. Please upload your PAN Card.`);
       setExpanded("uploaddoc-header");
@@ -1943,13 +1955,6 @@ const Mypage = () => {
       Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
       Number(d.documentTypeId || d.DocumentTypeID) === 27 ||
       /^[STFGM][0-9]{7}[A-Z]$/i.test(d.Number || d.documentNo || d.Name || "")
-    ) || (alldocs || []).some(d =>
-      Number(d.documentTypeId) === 25 || Number(d.documentTypeId) === 27
-    ) || (selectedCustomerID?.Documents || []).some(d =>
-      String(d.Type || d.type || "").toUpperCase() === "NRIC" ||
-      String(d.Type || d.type || "").toUpperCase() === "FIN" ||
-      Number(d.documentTypeId || d.DocumentTypeID) === 25 ||
-      Number(d.documentTypeId || d.DocumentTypeID) === 27
     );
 
     if (isSingapore && insAmt >= SG_NRIC_THRESHOLD && !hasNric) {

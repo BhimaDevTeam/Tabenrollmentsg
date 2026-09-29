@@ -12,7 +12,7 @@ const fetcher = async (url) => {
   return response.data;
 };
 
-const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, uploadedDocs, onEkyc, aadharverified }) => {
+const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, uploadedDocs, onDeleteDoc, onEkyc, aadharverified }) => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
   const [docType, setDocType] = useState("");
@@ -497,6 +497,7 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
             <th>Doc Type</th>
             <th>Doc No.</th>
             <th>Preview</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -526,6 +527,19 @@ const UploadDocument = ({ amount, noOfInstallments, schemename, onFileUpload, up
                   >
                     <i className="bi bi-eye"></i>
                   </span>
+                </td>
+                <td>
+                  {doc._locallyUploaded && onDeleteDoc ? (
+                    <span
+                      title="Delete this document"
+                      style={{ cursor: "pointer", color: "#dc3545", fontSize: "1.1rem" }}
+                      onClick={() => onDeleteDoc(doc)}
+                    >
+                      <i className="bi bi-trash"></i>
+                    </span>
+                  ) : (
+                    <span style={{ color: "#aaa", fontSize: "0.8rem" }} title="Cannot delete (fetched from records)">—</span>
+                  )}
                 </td>
               </tr>
             ))

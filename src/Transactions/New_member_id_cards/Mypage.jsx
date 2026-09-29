@@ -912,6 +912,7 @@ const Mypage = () => {
         ImageURL: data.documentData,
         imagePath: data.documentData,
         file: data.file,
+        _locallyUploaded: true,  // flag: uploaded in this session — eligible for delete
       };
 
       setUploadedDocs((prev) => [...prev, docObj]);
@@ -920,6 +921,13 @@ const Mypage = () => {
   useEffect(() => {
     console.log("uploadedDocs in mypage", uploadedDocs);
   }, [uploadedDocs]);
+
+  // Delete a locally-uploaded document (never deletes API-fetched docs)
+  const handleDeleteDoc = (docToDelete) => {
+    if (!docToDelete._locallyUploaded) return;
+    setUploadedDocs((prev) => prev.filter((d) => d !== docToDelete));
+    setAllDocs((prev) => prev.filter((d) => !(d._locallyUploaded && d.documentTypeId === docToDelete.documentTypeId && d.documentNo === docToDelete.documentNo)));
+  };
 
   // console.log("checking", [
   //   ...uploadedDocs,
@@ -2295,6 +2303,7 @@ const Mypage = () => {
               schemename={membershipData.selectedSchemeName}
               onFileUpload={handleFileUpload}
               uploadedDocs={uploadedDocs}
+              onDeleteDoc={handleDeleteDoc}
               onEkyc={() => setEkycQROpen(true)}
               aadharverified={aadharverified}
             />

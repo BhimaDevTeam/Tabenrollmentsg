@@ -295,6 +295,7 @@ const Mypage = () => {
         NomineeAddress: nomineeData.nomineeaddress || "",
         NomineeRelation: nomineeData.relationshipName || nomineeData.relationship || "",
         GuardianName: guardaianData.guardname || "",
+        GuardianRelation: guardaianData.guardrelationship || "",
         MetalType: membershipData.commodityTypeId === 1 ? "Gold" : "Silver",
         SalesPersonName: "",
         AccountNo: bankData.accountNo || "",
@@ -2122,10 +2123,10 @@ const Mypage = () => {
             </AccordionSummary>
             <AccordionDetails>
               <GuardaianDetails
+                guardianData={guardaianData}
                 setGuardianData={setGuardianData}
                 errorValidate={errorValidate}
                 clearError={clearError}
-
               />
               <div className="button-container">
                 {/* <button

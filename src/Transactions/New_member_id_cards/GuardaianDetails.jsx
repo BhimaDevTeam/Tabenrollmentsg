@@ -3,28 +3,54 @@ import { Form, Col, Row } from 'react-bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import PickDate from '../PickDate/PickDate';
 import { calculateAge } from '../PickDate/DateUtils';
-import { COLLECTION_API } from '../../apiurl';
+import { COLLECTION_API, SG_COLLECTION_API } from '../../apiurl';
 import { useSelector } from 'react-redux';
 
-const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
-  const data=useSelector(state=>state?.customer)
-  const [formData, setFormData] = useState({
-    guardname: '',
-    guardGender: '',
-    guardrelationship: '',
-    guarddob: '',
+const GUARDIAN_RELATIONSHIPS = [
+  { ID: 97, Name: "Father" },
+  { ID: 98, Name: "Mother" },
+  { ID: 101, Name: "Brother" },
+  { ID: 102, Name: "Sister" },
+  { ID: 103, Name: "Brother" },
+  { ID: 105, Name: "Other" },
+  { ID: 106, Name: "Cousin" },
+  { ID: 107, Name: "Uncle" },
+  { ID: 108, Name: "Aunt" },
+];
+
+const GuardaianDetails = ({ guardianData, setGuardianData, errorValidate, clearError }) => {
+  const data = useSelector(state => state?.customer);
+  const [formData, setFormData] = useState(() => {
+    let stored = {};
+    try {
+      stored = JSON.parse(localStorage.getItem("guardaianData") || "{}");
+    } catch (e) {
+      stored = {};
+    }
+    const initialRel = guardianData?.guardrelationship !== undefined && guardianData?.guardrelationship !== null
+      ? String(guardianData.guardrelationship)
+      : (stored?.guardrelationship !== undefined && stored?.guardrelationship !== null ? String(stored.guardrelationship) : '');
+
+    return {
+      guardname: guardianData?.guardname || stored?.guardname || '',
+      guardGender: guardianData?.guardGender || stored?.guardGender || '',
+      guardrelationship: initialRel,
+      guardrelationshipName: guardianData?.guardrelationshipName || stored?.guardrelationshipName || '',
+      guarddob: guardianData?.guarddob || stored?.guarddob || '',
+    };
   });
 
   const [errors, setErrors] = useState('');
-  const [isEdit, setIsEdit] = useState(false)
-  const [relationships, setRelationships] = useState([]); // State to hold relationships
+  const [isEdit, setIsEdit] = useState(false);
+  const [relationships, setRelationships] = useState(GUARDIAN_RELATIONSHIPS);
   const [storeObj, setStoreObj] = useState({});
+
   const fetchRelationships = async () => {
     try {
-      const response = await fetch(`${COLLECTION_API}/guardiandetails`, {
+      const apiUrl = SG_COLLECTION_API || COLLECTION_API;
+      const response = await fetch(`${apiUrl}/guardiandetails`, {
         method: "GET",
         headers: {
-
           "Content-Type": "application/json",
         },
       });
@@ -34,21 +60,19 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
       }
 
       const responseData = await response.json();
-     
 
       if (Array.isArray(responseData) && responseData.length > 0) {
         setRelationships(responseData);
       } else {
-        throw new Error("No scheme data received");
-      } // Assuming data is an array of relationship objects
-
+        setRelationships(GUARDIAN_RELATIONSHIPS);
+      }
     } catch (error) {
-      console.error('Error fetching relationships:', error);
+      console.warn('Error fetching relationships:', error);
+      setRelationships(GUARDIAN_RELATIONSHIPS);
     }
   };
 
   useEffect(() => {
-   
     if (Array.isArray(data?.customer)) {
       const isMajor = (user) => {
         if (!user) return false;
@@ -72,43 +96,37 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
         const obj = {
           guardname: Name || Aadharname || "",
           guardGender: mappedGender,
-          guardrelationship: '',
           guarddob: DateOfBirth || "",
         };
         setIsEdit(true);
-        setFormData(obj);
+        setFormData(prev => ({
+          ...prev,
+          guardname: prev.guardname || obj.guardname,
+          guardGender: prev.guardGender || obj.guardGender,
+          guarddob: prev.guarddob || obj.guarddob,
+        }));
         setStoreObj(obj);
-      }
-      else{
-        setStoreObj({})
+      } else {
+        setStoreObj({});
       }
     }
     fetchRelationships();
-  },[data?.customer]);
-
- 
+  }, [data?.customer]);
 
   useEffect(() => {
     setGuardianData(formData);
-
   }, [formData, setGuardianData]);
 
-
-
   const handleGuardGenderChange = (event) => {
-    const selectedValue = event.target.value; // Get the selected value from the event
-    // console.log("Before change:", formData.guardGender);
+    const selectedValue = event.target.value;
     setFormData((prevFormData) => ({ ...prevFormData, guardGender: selectedValue }));
-    // console.log("After change:", selectedValue);
     clearError('guardGender');
   };
-
 
   const handleDateChange = (newDate) => {
     setFormData((prevFormData) => ({ ...prevFormData, guarddob: newDate }));
     clearError('guarddob');
   };
-
 
   useEffect(() => {
     const age = calculateAge(formData.guarddob);
@@ -117,10 +135,8 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
     }
   }, [formData.guarddob, errorValidate]);
 
-
   return (
     <div className='container'>
-
       <Form className="form">
         <p>kyc document is to be furnished </p>
         <Row className="mb-3">
@@ -131,28 +147,22 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
                 type="text"
                 placeholder="Enter Guardian Name"
                 name="guardname"
-                disabled={isEdit &&  storeObj.guardname}
                 value={formData.guardname}
                 onChange={(e) => {
                   const value = e.target.value;
                   const upperCaseValue = value.toUpperCase(); // Convert to uppercase
                   // Allow only alphabetic characters and spaces
                   if (/^[a-zA-Z\s]*$/.test(upperCaseValue)) {
-                    setFormData({ ...formData, guardname: upperCaseValue });
+                    setFormData(prev => ({ ...prev, guardname: upperCaseValue }));
                     clearError('guardname');
                   }
                 }}
                 className="form-control custom-placeholder"
-           
                 required
-
               />
               {errorValidate.guardname && <Form.Text className="text-danger">{errorValidate.guardname}</Form.Text>}
-
             </Form.Group>
           </Col>
-
-
 
           <Col md={5}>
             <Form.Group controlId="formGuardrelationship" className="form-group">
@@ -160,13 +170,15 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
               <Form.Select
                 name="guardrelationship"
                 className="form-control custom-placeholder"
-                value={formData.guardrelationship}
+                value={formData.guardrelationship ? String(formData.guardrelationship) : ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFormData({
-                    ...formData,
+                  const selectedRel = relationships.find(r => String(r.ID) === String(value));
+                  setFormData(prev => ({
+                    ...prev,
                     guardrelationship: value,
-                  });
+                    guardrelationshipName: selectedRel ? selectedRel.Name : "",
+                  }));
                   if (value) {
                     clearError('guardrelationship');
                   }
@@ -175,8 +187,8 @@ const GuardaianDetails = ({ setGuardianData, errorValidate, clearError }) => {
                 <option value="" hidden>
                   Select a relationship
                 </option> 
-                {relationships.map((relationship) => (
-                  <option key={relationship.ID} value={relationship.ID}>
+                {relationships.map((relationship, index) => (
+                  <option key={`${relationship.ID}-${index}`} value={relationship.ID}>
                     {relationship.Name}
                   </option>
                 ))}

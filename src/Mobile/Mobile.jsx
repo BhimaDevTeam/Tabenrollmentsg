@@ -73,12 +73,29 @@ const mapApiSchemesToCards = (apiSchemes, isSg = false) => {
 
     let card;
     if (match) {
+      const minVal = apiScheme.MinInsValue != null ? apiScheme.MinInsValue : match.minimumValue;
+      const noOfIns = apiScheme.NoOfIns != null ? apiScheme.NoOfIns : 11;
+      const sym = isSg ? "S$" : "₹";
+
+      let desc = match.description;
+      let term = match.termDuration;
+
+      if (isShreyasScheme(match)) {
+        desc = `Start with Just ${sym} ${minVal || (isSg ? 100 : 1000)} a month & Avail No making Charges Up to 18% on Jewellery.`;
+        term = `Start with ${sym}${minVal || (isSg ? 100 : 1000)} per month for a period of ${noOfIns} months. On maturity, the savings made by the customer is redeemable against Gold, Silver, Diamond, Platinum jewellery, or any combination giving you complete flexibility in your choice.`;
+      } else if (/kanaka/i.test(match.title || apiScheme.SchemeName || "") && isSg) {
+        const insMult = apiScheme.InsMultiples != null ? apiScheme.InsMultiples : 1000;
+        term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over ${noOfIns} months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, "S$")}, with top-ups available in multiples of ${formatCurrency(insMult, "S$")}.`;
+      }
+
       card = {
         ...match,
         SchemeCode: apiScheme.SchemeCode || apiScheme.schemeCode,
         SchemeName: apiScheme.SchemeName || apiScheme.schemeName,
         order: apiScheme.SchemeCode || match.order || String(index + 1),
         title: match.title,
+        description: desc,
+        termDuration: term,
         minimumValue: apiScheme.MinInsValue != null ? String(apiScheme.MinInsValue) : match.minimumValue,
         numberOfInstallment: apiScheme.NoOfIns != null ? `${apiScheme.NoOfIns} month${Number(apiScheme.NoOfIns) > 1 ? "s" : ""}` : match.numberOfInstallment,
         apiSchemeData: apiScheme,
@@ -89,15 +106,15 @@ const mapApiSchemesToCards = (apiSchemes, isSg = false) => {
         SchemeCode: apiScheme.SchemeCode,
         SchemeName: apiScheme.SchemeName,
         title: formattedTitle,
-        description: `Start with Just ${isSg ? "S$" : "Rs"} ${apiScheme.MinInsValue || 1000} a month & avail special scheme benefits.`,
+        description: `Start with Just ${isSg ? "S$" : "₹"} ${apiScheme.MinInsValue || (isSg ? 100 : 1000)} a month & avail special scheme benefits.`,
         logoImage: "https://images.bhimagold.com/admin/general/images/1781181763056-1777273905752-BhimaMyChoicelog.jpeg",
         backgroundImageLink: "https://images.bhimagold.com/admin/common/images/1776927824375-BMC-Background-Img.png",
         imageLink: "https://images.bhimagold.com/admin/images/31349e70-e99e-11ed-a46c-8f70e05ffb43.png",
         numberOfInstallment: `${apiScheme.NoOfIns || 11} month${Number(apiScheme.NoOfIns) > 1 ? "s" : ""}`,
-        minimumValue: String(apiScheme.MinInsValue || 1000),
+        minimumValue: String(apiScheme.MinInsValue || (isSg ? 100 : 1000)),
         Bonus: "Exclusive scheme benefits.",
         brochureLink: "",
-        termDuration: `Start with ${isSg ? "S$" : "₹"}${apiScheme.MinInsValue || 1000} per month for a period of ${apiScheme.NoOfIns || 11} months.`,
+        termDuration: `Start with ${isSg ? "S$" : "₹"}${apiScheme.MinInsValue || (isSg ? 100 : 1000)} per month for a period of ${apiScheme.NoOfIns || 11} months.`,
         benefits: "Avail special discounts and benefits upon maturity.",
         calculator: "",
         redemption: "Redeemable against gold, silver, diamond, or platinum jewellery.",

@@ -322,12 +322,12 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
   };
 
   const getFilteredDisplaySchemes = () => {
-    if (!Array.isArray(schemeData) || schemeData.length === 0) {
-      return schemesDisplayData;
-    }
-    const mapped = schemeData.map((apiScheme, index) => {
-      const apiName = (apiScheme.SchemeName || "").trim().toLowerCase();
-      const apiCode = (apiScheme.SchemeCode || "").trim().toLowerCase();
+    const rawList = Array.isArray(schemeData) && schemeData.length > 0 ? schemeData : schemesDisplayData;
+    const isSg = isSingapore || activeSymbol === "S$";
+
+    const mapped = rawList.map((apiScheme, index) => {
+      const apiName = (apiScheme.SchemeName || apiScheme.title || "").trim().toLowerCase();
+      const apiCode = (apiScheme.SchemeCode || apiScheme.order || "").trim().toLowerCase();
 
       const match = schemesDisplayData.find((s) => {
         const sTitle = (s.title || "").trim().toLowerCase();
@@ -340,15 +340,45 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         );
       });
 
+      const minVal = apiScheme.MinInsValue != null
+        ? apiScheme.MinInsValue
+        : (match?.minimumValue || (isSg ? 100 : 1000));
+      const insMult = apiScheme.InsMultiples != null ? apiScheme.InsMultiples : null;
+      const noOfIns = apiScheme.NoOfIns != null ? apiScheme.NoOfIns : 11;
+
       if (match) {
+        let desc = match.description;
+        let term = match.termDuration;
+        let benefits = match.benefits;
+        let redemption = match.redemption;
+
+        const isShreyas = /shreyas/i.test(match.title || apiScheme.SchemeName || "") || /^BSR/i.test(apiScheme.SchemeCode || "");
+        const isKanaka = /kanaka/i.test(match.title || apiScheme.SchemeName || "") || /^BSK/i.test(apiScheme.SchemeCode || "");
+
+        if (isShreyas) {
+          desc = `Start with Just ${activeSymbol} ${minVal} a month & Avail No making Charges Up to 18% on Jewellery.`;
+          term = `Start with ${activeSymbol}${minVal} per month for a period of ${noOfIns} months. On maturity, the savings made by the customer is redeemable against Gold, Silver, Diamond, Platinum jewellery, or any combination giving you complete flexibility in your choice.`;
+        } else if (isKanaka && isSg) {
+          term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over ${noOfIns || 11} months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, activeSymbol)}, with top-ups available in multiples of ${formatCurrency(insMult || 1000, activeSymbol)}.`;
+        }
+
+        desc = replaceCurrencySymbols(desc, activeSymbol);
+        term = replaceCurrencySymbols(term, activeSymbol);
+        benefits = replaceCurrencySymbols(benefits, activeSymbol);
+        redemption = replaceCurrencySymbols(redemption, activeSymbol);
+
         return {
           ...match,
-          SchemeCode: apiScheme.SchemeCode,
-          SchemeName: apiScheme.SchemeName,
+          SchemeCode: apiScheme.SchemeCode || match.SchemeCode,
+          SchemeName: apiScheme.SchemeName || match.title,
           order: apiScheme.SchemeCode || match.order || String(index + 1),
           title: match.title,
-          minimumValue: apiScheme.MinInsValue != null ? String(apiScheme.MinInsValue) : match.minimumValue,
-          numberOfInstallment: apiScheme.NoOfIns != null ? `${apiScheme.NoOfIns} months` : match.numberOfInstallment,
+          description: desc,
+          termDuration: term,
+          benefits: benefits,
+          redemption: redemption,
+          minimumValue: String(minVal),
+          numberOfInstallment: `${noOfIns} months`,
           apiSchemeData: apiScheme,
         };
       }
@@ -362,15 +392,15 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         SchemeCode: apiScheme.SchemeCode,
         SchemeName: apiScheme.SchemeName,
         title: formattedTitle,
-        description: `Start with Just ${activeSymbol} ${apiScheme.MinInsValue || 1000} a month & avail special scheme benefits.`,
+        description: replaceCurrencySymbols(`Start with Just ${activeSymbol} ${minVal} a month & avail special scheme benefits.`, activeSymbol),
         logoImage: "https://images.bhimagold.com/admin/general/images/1781181763056-1777273905752-BhimaMyChoicelog.jpeg",
         backgroundImageLink: "https://images.bhimagold.com/admin/common/images/1776927824375-BMC-Background-Img.png",
         imageLink: "https://images.bhimagold.com/admin/images/31349e70-e99e-11ed-a46c-8f70e05ffb43.png",
-        numberOfInstallment: `${apiScheme.NoOfIns || 11} months`,
-        minimumValue: String(apiScheme.MinInsValue || 1000),
+        numberOfInstallment: `${noOfIns} months`,
+        minimumValue: String(minVal),
         Bonus: "Exclusive scheme benefits.",
         brochureLink: "",
-        termDuration: `Start with ${activeSymbol}${apiScheme.MinInsValue || 1000} per month for a period of ${apiScheme.NoOfIns || 11} months.`,
+        termDuration: replaceCurrencySymbols(`Start with ${activeSymbol}${minVal} per month for a period of ${noOfIns} months.`, activeSymbol),
         benefits: "Avail special discounts and benefits upon maturity.",
         calculator: "",
         redemption: "Redeemable against gold, silver, diamond, or platinum jewellery.",
@@ -453,7 +483,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
                     </div>
                     <div style={{ padding: "12px" }}>
                       <h6 style={{ fontWeight: "700", fontSize: "16px", color: "#221f20", marginBottom: "6px" }}>{s.title}</h6>
-                      <p style={{ fontSize: "12px", color: "#666", lineHeight: "1.4", marginBottom: "10px" }}>{s.description}</p>
+                      <p style={{ fontSize: "12px", color: "#666", lineHeight: "1.4", marginBottom: "10px" }}>{replaceCurrencySymbols(s.description, activeSymbol)}</p>
                       <button type="button" className="custom-button1" style={{ fontSize: "12px", padding: "6px 16px", borderRadius: "4px" }}
                         onClick={(e) => { e.stopPropagation(); setBrowsingScheme(s); }}>View Details</button>
                     </div>
@@ -483,15 +513,15 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
               <div style={{ padding: "16px", fontSize: "13px", color: "#444", lineHeight: "1.7" }}>
                 <div style={{ marginBottom: "12px" }}>
                   <strong style={{ color: "#614119" }}>Term Duration:</strong>
-                  <p style={{ margin: "4px 0 0" }}>{browsingScheme.termDuration}</p>
+                  <p style={{ margin: "4px 0 0" }}>{replaceCurrencySymbols(browsingScheme.termDuration, activeSymbol)}</p>
                 </div>
                 <div style={{ marginBottom: "12px" }}>
                   <strong style={{ color: "#614119" }}>Benefits:</strong>
-                  <p style={{ margin: "4px 0 0" }}>{browsingScheme.benefits}</p>
+                  <p style={{ margin: "4px 0 0" }}>{replaceCurrencySymbols(browsingScheme.benefits, activeSymbol)}</p>
                 </div>
                 <div style={{ marginBottom: "12px" }}>
                   <strong style={{ color: "#614119" }}>Redemption:</strong>
-                  <p style={{ margin: "4px 0 0" }}>{browsingScheme.redemption}</p>
+                  <p style={{ margin: "4px 0 0" }}>{replaceCurrencySymbols(browsingScheme.redemption, activeSymbol)}</p>
                 </div>
                 {!isSingapore && browsingScheme.calculator && (
                   <div style={{ margin: "14px 0", borderRadius: "6px", overflow: "hidden", border: "1px solid #ece3d5" }}>

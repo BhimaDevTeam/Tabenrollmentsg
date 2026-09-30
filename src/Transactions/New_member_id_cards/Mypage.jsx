@@ -2537,9 +2537,9 @@ const Mypage = () => {
                 <li>Subscriber Name: {subscriberData.subscriberName}</li>
                 <li>Scheme Name: {membershipData.selectedSchemeName}</li>
                 <li>
-                  Installment Amount: ₹
+                  Installment Amount:{" "}
                   {membershipData.installmentAmount
-                    ? membershipData.installmentAmount.toLocaleString("en-IN")
+                    ? formatCurrency(membershipData.installmentAmount, activeSymbol)
                     : "N/A"}
                 </li>
               </ul>

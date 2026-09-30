@@ -27,8 +27,17 @@ export const replaceCurrencySymbols = (text, customSymbol) => {
   if (!text || typeof text !== "string") return text;
   const symbol = customSymbol !== undefined ? customSymbol : getCurrencySymbol();
   if (symbol === "S$") {
-    return text.replace(/₹/g, "S$").replace(/\bRs\.?\s*/gi, "S$ ");
+    return text
+      .replace(/₹\s*/g, "S$")
+      .replace(/\bRs\.?\s*1000\b/gi, "S$ 100")
+      .replace(/\bRs\.?\s*/gi, "S$ ")
+      .replace(/\bINR\b/gi, "SGD")
+      .replace(/\(two thousand rupees\)/gi, "")
+      .replace(/\(Rupees One Thousand\)/gi, "")
+      .replace(/\(Rupees Five thousand\)/gi, "")
+      .replace(/\(Rupees[^)]+\)/gi, "")
+      .replace(/\b(rupees|rupee)\b/gi, "SGD");
   } else {
-    return text.replace(/S\$/g, "₹");
+    return text.replace(/S\$\s*/g, "₹").replace(/\bSGD\b/gi, "INR");
   }
 };

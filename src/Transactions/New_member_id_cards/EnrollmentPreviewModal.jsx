@@ -28,23 +28,57 @@ const EnrollmentPreviewModal = ({
   const activeSymbol = currencySymbol || (selectedCountry === "Singapore" ? "S$" : "₹");
   const isSingapore = selectedCountry === "Singapore";
 
+  // Safe fallback string helper
+  const valOrDash = (val) => {
+    if (val === null || val === undefined) return "—";
+    const str = String(val).trim();
+    return str !== "" ? str : "—";
+  };
+
+  // Safe subscriber fields
+  const subName = subscriberData.subscriberName || subscriberData.Cust_Name || subscriberData.name || subscriberData.Name || "";
+  const subMobile = subscriberData.mobileNo || subscriberData.Mobile_No || subscriberData.mobile || subscriberData.phone || "";
+  const subEmail = subscriberData.email || subscriberData.email_id || subscriberData.Email || "";
+  const subGender = subscriberData.gender || subscriberData.Gender || "";
+  const subDob = subscriberData.dob || subscriberData.DateOf_Birth || subscriberData.dateOfBirth || "";
+  const subPincode = subscriberData.pinCode || subscriberData.Pin_Code || subscriberData.pincode || "";
+  const subArea = subscriberData.area || subscriberData.Address3 || "";
+  const subCity = subscriberData.city || subscriberData.City || "";
+  const subState = subscriberData.state || subscriberData.State || "";
+  const subAdd1 = subscriberData.address1 || subscriberData.Address1 || "";
+  const subAdd2 = subscriberData.address2 || subscriberData.Address2 || "";
+  const subAdd3 = subscriberData.address3 || subscriberData.Address3 || "";
+  const subPermAdd = subscriberData.permanentAddress || subscriberData.PermanentAddress || "";
+
+  // Safe nominee fields
+  const nomName = nomineeData.nomineename || nomineeData.NomineName || nomineeData.NomineeName || nomineeData.nomineeName || nomineeData.name || "";
+  const nomRel = nomineeData.relationshipName || nomineeData.relationship || nomineeData.NomineRelationship || nomineeData.NomineeRelationship || nomineeData.Relationship || "";
+  const nomPhone = nomineeData.nomineephoneno || nomineeData.nomineePhone || nomineeData.NominePhone || nomineeData.NomineePhone || nomineeData.phone || "";
+  const nomAddress = nomineeData.nomineeaddress || nomineeData.nomineeAddress || nomineeData.NomineAddress || nomineeData.NomineeAddress || nomineeData.address || "";
+
+  // Safe guardian fields
+  const guardName = guardaianData.guardname || guardaianData.GuardianName || guardaianData.guardName || "";
+  const guardRel = guardaianData.guardrelationshipName || guardaianData.guardrelationship || guardaianData.GuardianRelation || guardaianData.guardRelationship || "";
+  const guardGender = guardaianData.guardGender || guardaianData.Guardiangender || guardaianData.gender || "";
+  const guardDob = guardaianData.guarddob || guardaianData.GuardianDOB || guardaianData.dob || "";
+
   // Compute full clean address
   const fullAddress = useMemo(() => {
     const parts = [
-      subscriberData.address1,
-      subscriberData.address2,
-      subscriberData.address3,
-      subscriberData.area && subscriberData.area !== subscriberData.address3 ? subscriberData.area : null,
-      subscriberData.city,
-      subscriberData.state,
-      subscriberData.pinCode
+      subAdd1,
+      subAdd2,
+      subAdd3,
+      subArea && subArea !== subAdd3 ? subArea : null,
+      subCity,
+      subState,
+      subPincode
         ? isSingapore
-          ? `Singapore ${subscriberData.pinCode}`
-          : `PIN ${subscriberData.pinCode}`
+          ? `Singapore ${subPincode}`
+          : `PIN ${subPincode}`
         : null,
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(", ") : "";
-  }, [subscriberData, isSingapore]);
+  }, [subAdd1, subAdd2, subAdd3, subArea, subCity, subState, subPincode, isSingapore]);
 
   // Combine and deduplicate documents from uploadedDocs and alldocs
   const combinedDocs = useMemo(() => {
@@ -60,7 +94,7 @@ const EnrollmentPreviewModal = ({
       ).trim().toUpperCase();
       const key = `${docId}_${docNo}`;
 
-      // Skip profile webcam images from identity docs list
+      // Skip plain profile webcam images from identity docs list
       const typeStr = String(doc.Type || doc.type || "").toUpperCase();
       if (typeStr.includes("IMG") && !docNo) continue;
 
@@ -123,13 +157,6 @@ const EnrollmentPreviewModal = ({
     setLightboxCaption(caption);
   };
 
-  // Helper for displaying clean text or "—"
-  const valOrDash = (val) => {
-    if (val === null || val === undefined) return "—";
-    const str = String(val).trim();
-    return str !== "" ? str : "—";
-  };
-
   // Calculate estimated maturity date if not in data (11 months after start date)
   const estimatedMaturity = useMemo(() => {
     if (membershipData.maturityDate) return membershipData.maturityDate;
@@ -165,7 +192,7 @@ const EnrollmentPreviewModal = ({
                 <i className="bi bi-file-earmark-text-fill text-warning"></i>
                 MEMBERSHIP ENROLLMENT APPLICATION
               </h2>
-              <p>Please review and verify all entered details before final submission</p>
+              <p>Complete Form Preview & Verification before Final Save</p>
             </div>
           </div>
 
@@ -194,8 +221,8 @@ const EnrollmentPreviewModal = ({
           </div>
         </header>
 
-        {/* ─── Full-Screen Scrollable Form Body ─── */}
-        <div className="epm-body">
+        {/* ─── Full-Screen Scrollable Document Body ─── */}
+        <main className="epm-body">
           {/* Status Alert Banner */}
           <div className="epm-alert-banner">
             <div className="epm-alert-icon">
@@ -204,8 +231,8 @@ const EnrollmentPreviewModal = ({
             <div className="epm-alert-text">
               <strong>Application Form Preview & Verification</strong>
               <span>
-                Carefully review all personal details, scheme selection, nominee, and uploaded documents.
-                You can click <strong>"Edit"</strong> on any section if changes are needed, or click <strong>"Confirm & Save Enrollment"</strong> below to complete your registration.
+                Please verify all personal details, scheme selection, nominee, and uploaded documents.
+                Click <strong>"Edit"</strong> on any section below to make adjustments, or click <strong>"Confirm & Save Enrollment"</strong> at the bottom to complete your registration.
               </span>
             </div>
           </div>
@@ -240,7 +267,7 @@ const EnrollmentPreviewModal = ({
                 <div>
                   <span className="epm-hero-tag">APPLICANT NAME</span>
                   <h3 className="epm-hero-name">
-                    {subscriberData.subscriberName || "Subscriber Name"}
+                    {subName || "Applicant Name"}
                   </h3>
                 </div>
                 <div className="epm-hero-branch-pill">
@@ -250,29 +277,29 @@ const EnrollmentPreviewModal = ({
               </div>
 
               <div className="epm-hero-meta">
-                {subscriberData.mobileNo && (
+                {subMobile && (
                   <span className="epm-meta-chip">
                     <i className="bi bi-telephone-fill"></i>
                     {isSingapore ? "+65 " : "+91 "}
-                    {subscriberData.mobileNo}
+                    {subMobile}
                   </span>
                 )}
-                {subscriberData.email && (
+                {subEmail && (
                   <span className="epm-meta-chip">
                     <i className="bi bi-envelope-fill"></i>
-                    {subscriberData.email}
+                    {subEmail}
                   </span>
                 )}
-                {subscriberData.gender && (
+                {subGender && (
                   <span className="epm-meta-chip">
                     <i className="bi bi-person-fill"></i>
-                    {subscriberData.gender}
+                    {subGender}
                   </span>
                 )}
-                {subscriberData.dob && (
+                {subDob && (
                   <span className="epm-meta-chip">
                     <i className="bi bi-calendar3"></i>
-                    DOB: {subscriberData.dob}
+                    DOB: {subDob}
                   </span>
                 )}
               </div>
@@ -297,8 +324,8 @@ const EnrollmentPreviewModal = ({
             </div>
           </div>
 
-          {/* ─── SECTION 1: Subscriber / Personal Details ─── */}
-          <div className="epm-form-section">
+          {/* ─── SECTION 1: Personal & Subscriber Details ─── */}
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
                 <span className="epm-section-num">1</span>
@@ -320,10 +347,10 @@ const EnrollmentPreviewModal = ({
               <div className="epm-form-grid">
                 <div className="epm-form-field">
                   <label className="epm-field-label">
-                    <i className="bi bi-person"></i> Subscriber Full Name
+                    <i className="bi bi-person"></i> Full Name
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.subscriberName)}
+                    {valOrDash(subName)}
                   </div>
                 </div>
 
@@ -332,7 +359,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-telephone"></i> Mobile Number
                   </label>
                   <div className="epm-field-box">
-                    {subscriberData.mobileNo ? `${isSingapore ? "+65 " : "+91 "}${subscriberData.mobileNo}` : "—"}
+                    {subMobile ? `${isSingapore ? "+65 " : "+91 "}${subMobile}` : "—"}
                   </div>
                 </div>
 
@@ -341,7 +368,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-envelope"></i> Email Address
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.email)}
+                    {valOrDash(subEmail)}
                   </div>
                 </div>
 
@@ -350,7 +377,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-gender-ambiguous"></i> Gender
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.gender)}
+                    {valOrDash(subGender)}
                   </div>
                 </div>
 
@@ -359,7 +386,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-calendar-event"></i> Date of Birth
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.dob)}
+                    {valOrDash(subDob)}
                   </div>
                 </div>
 
@@ -368,7 +395,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-geo"></i> Postal / PIN Code
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.pinCode)}
+                    {valOrDash(subPincode)}
                   </div>
                 </div>
 
@@ -377,7 +404,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-pin-map"></i> Area / Locality
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.area)}
+                    {valOrDash(subArea)}
                   </div>
                 </div>
 
@@ -386,7 +413,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-building"></i> City
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.city)}
+                    {valOrDash(subCity)}
                   </div>
                 </div>
 
@@ -395,7 +422,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-flag"></i> State / Country
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.state || (isSingapore ? "Singapore" : ""))}
+                    {valOrDash(subState || (isSingapore ? "Singapore" : ""))}
                   </div>
                 </div>
 
@@ -404,17 +431,17 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-house-door"></i> Address Line 1
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subscriberData.address1)}
+                    {valOrDash(subAdd1)}
                   </div>
                 </div>
 
-                {(subscriberData.address2 || subscriberData.address3) && (
+                {(subAdd2 || subAdd3) && (
                   <div className="epm-form-field epm-col-span-2">
                     <label className="epm-field-label">
                       <i className="bi bi-house-door"></i> Address Line 2 & 3
                     </label>
                     <div className="epm-field-box">
-                      {[subscriberData.address2, subscriberData.address3].filter(Boolean).join(", ")}
+                      {[subAdd2, subAdd3].filter(Boolean).join(", ")}
                     </div>
                   </div>
                 )}
@@ -428,22 +455,22 @@ const EnrollmentPreviewModal = ({
                   </div>
                 </div>
 
-                {subscriberData.permanentAddress && (
+                {subPermAdd && (
                   <div className="epm-form-field epm-col-span-full">
                     <label className="epm-field-label">
                       <i className="bi bi-signpost-2"></i> Permanent Address
                     </label>
                     <div className="epm-field-box">
-                      {subscriberData.permanentAddress}
+                      {subPermAdd}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
           {/* ─── SECTION 2: Scheme & Membership Details ─── */}
-          <div className="epm-form-section">
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
                 <span className="epm-section-num">2</span>
@@ -527,10 +554,10 @@ const EnrollmentPreviewModal = ({
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* ─── SECTION 3: Nominee Details ─── */}
-          <div className="epm-form-section">
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
                 <span className="epm-section-num">3</span>
@@ -555,7 +582,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-person-heart"></i> Nominee Full Name
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(nomineeData.nomineename)}
+                    {valOrDash(nomName)}
                   </div>
                 </div>
 
@@ -564,7 +591,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-people"></i> Relationship to Applicant
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(nomineeData.relationshipName || nomineeData.relationship)}
+                    {valOrDash(nomRel)}
                   </div>
                 </div>
 
@@ -573,7 +600,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-telephone"></i> Nominee Contact Number
                   </label>
                   <div className="epm-field-box">
-                    {nomineeData.nomineephoneno ? `${isSingapore ? "+65 " : "+91 "}${nomineeData.nomineephoneno}` : "—"}
+                    {nomPhone ? `${isSingapore ? "+65 " : "+91 "}${nomPhone}` : "—"}
                   </div>
                 </div>
 
@@ -582,16 +609,16 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-house"></i> Nominee Residential Address
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(nomineeData.nomineeaddress || (subscriberData.subscriberName ? "Same as Subscriber Address" : "—"))}
+                    {valOrDash(nomAddress || (subName ? "Same as Subscriber Address" : "—"))}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* ─── SECTION 4: Guardian Details (Only if Minor / Guardian present) ─── */}
-          {(showGuardianDetails || guardaianData.guardname) && (
-            <div className="epm-form-section">
+          {(showGuardianDetails || guardName) && (
+            <section className="epm-form-section">
               <div className="epm-section-header">
                 <div className="epm-section-title-wrap">
                   <span className="epm-section-num">4</span>
@@ -616,7 +643,7 @@ const EnrollmentPreviewModal = ({
                       <i className="bi bi-shield-person"></i> Guardian Name
                     </label>
                     <div className="epm-field-box">
-                      {valOrDash(guardaianData.guardname)}
+                      {valOrDash(guardName)}
                     </div>
                   </div>
 
@@ -625,7 +652,7 @@ const EnrollmentPreviewModal = ({
                       <i className="bi bi-people"></i> Relationship to Nominee
                     </label>
                     <div className="epm-field-box">
-                      {valOrDash(guardaianData.guardrelationshipName || guardaianData.guardrelationship)}
+                      {valOrDash(guardRel)}
                     </div>
                   </div>
 
@@ -634,7 +661,7 @@ const EnrollmentPreviewModal = ({
                       <i className="bi bi-gender-ambiguous"></i> Guardian Gender
                     </label>
                     <div className="epm-field-box">
-                      {valOrDash(guardaianData.guardGender)}
+                      {valOrDash(guardGender)}
                     </div>
                   </div>
 
@@ -643,19 +670,19 @@ const EnrollmentPreviewModal = ({
                       <i className="bi bi-calendar-event"></i> Guardian Date of Birth
                     </label>
                     <div className="epm-field-box">
-                      {valOrDash(guardaianData.guarddob)}
+                      {valOrDash(guardDob)}
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
           {/* ─── SECTION 5: Identity & Uploaded Documents ─── */}
-          <div className="epm-form-section">
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
-                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "5" : "4"}</span>
+                <span className="epm-section-num">{showGuardianDetails || guardName ? "5" : "4"}</span>
                 <div>
                   <h4 className="epm-section-title">Identity & Uploaded Documents</h4>
                   <p className="epm-section-subtitle">Government-issued identity cards and proof documents submitted</p>
@@ -733,13 +760,13 @@ const EnrollmentPreviewModal = ({
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* ─── SECTION 6: Live Photograph & Customer Signature Proof ─── */}
-          <div className="epm-form-section">
+          {/* ─── SECTION 6: Photo & Digital Signature Proof ─── */}
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
-                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "6" : "5"}</span>
+                <span className="epm-section-num">{showGuardianDetails || guardName ? "6" : "5"}</span>
                 <div>
                   <h4 className="epm-section-title">Photo & Signature Proof</h4>
                   <p className="epm-section-subtitle">Live photo verification and digital signature confirmation</p>
@@ -771,7 +798,7 @@ const EnrollmentPreviewModal = ({
                       >
                         <img
                           src={image}
-                          alt="Customer Camera Capture"
+                          alt="Customer Capture"
                           className="epm-proof-img"
                         />
                         <div className="epm-proof-hover">
@@ -825,13 +852,13 @@ const EnrollmentPreviewModal = ({
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ─── SECTION 7: Payment & Declaration ─── */}
-          <div className="epm-form-section">
+          {/* ─── SECTION 7: Payment Mode & Declaration ─── */}
+          <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
-                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "7" : "6"}</span>
+                <span className="epm-section-num">{showGuardianDetails || guardName ? "7" : "6"}</span>
                 <div>
                   <h4 className="epm-section-title">Payment Mode & Declaration</h4>
                   <p className="epm-section-subtitle">Payment method, amount payable, and applicant consent</p>
@@ -874,10 +901,10 @@ const EnrollmentPreviewModal = ({
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
 
-        {/* ─── Sticky Footer Action Bar ─── */}
+        {/* ─── Fixed Bottom Footer Action Bar ─── */}
         <footer className="epm-footer">
           <div className="epm-footer-left">
             <button

@@ -28,17 +28,22 @@ const EnrollmentPreviewModal = ({
   const activeSymbol = currencySymbol || (selectedCountry === "Singapore" ? "S$" : "₹");
   const isSingapore = selectedCountry === "Singapore";
 
-  // Resolve clean address string
+  // Compute full clean address
   const fullAddress = useMemo(() => {
     const parts = [
       subscriberData.address1,
       subscriberData.address2,
       subscriberData.address3,
+      subscriberData.area && subscriberData.area !== subscriberData.address3 ? subscriberData.area : null,
       subscriberData.city,
       subscriberData.state,
-      subscriberData.pinCode ? (isSingapore ? `Singapore ${subscriberData.pinCode}` : subscriberData.pinCode) : "",
+      subscriberData.pinCode
+        ? isSingapore
+          ? `Singapore ${subscriberData.pinCode}`
+          : `PIN ${subscriberData.pinCode}`
+        : null,
     ].filter(Boolean);
-    return parts.length > 0 ? parts.join(", ") : "—";
+    return parts.length > 0 ? parts.join(", ") : "";
   }, [subscriberData, isSingapore]);
 
   // Combine and deduplicate documents from uploadedDocs and alldocs
@@ -50,10 +55,12 @@ const EnrollmentPreviewModal = ({
     for (const doc of pool) {
       if (!doc) continue;
       const docId = String(doc.DocumentID ?? doc.documentTypeId ?? doc.DocumentTypeID ?? doc.docType ?? doc.id ?? "");
-      const docNo = String(doc.Number || doc.number || doc.documentNo || doc.DocumentNo || doc.docNumber || doc.DocNumber || doc.Name || doc.name || "").trim().toUpperCase();
+      const docNo = String(
+        doc.Number || doc.number || doc.documentNo || doc.DocumentNo || doc.docNumber || doc.DocNumber || doc.Name || doc.name || ""
+      ).trim().toUpperCase();
       const key = `${docId}_${docNo}`;
 
-      // Skip profile images from doc list if they are just the webcam avatar
+      // Skip profile webcam images from identity docs list
       const typeStr = String(doc.Type || doc.type || "").toUpperCase();
       if (typeStr.includes("IMG") && !docNo) continue;
 
@@ -94,63 +101,87 @@ const EnrollmentPreviewModal = ({
   const resolveDocNumber = (doc) => {
     if (!doc) return "—";
     const num = doc.Number || doc.number || doc.documentNo || doc.DocumentNo || doc.docNumber || doc.DocNumber || doc.Name || doc.name;
-    return (num && String(num).trim() !== "") ? String(num).trim() : "—";
+    return num && String(num).trim() !== "" ? String(num).trim() : "—";
   };
 
   const resolveDocImage = (doc) => {
     if (!doc) return null;
-    let src = doc.ImagePath || doc.imagePath || doc.ImageURL || doc.imageURL || doc.ImageUrl || doc.imageUrl;
-    if (!src && doc.file instanceof Blob) {
-      try {
-        src = URL.createObjectURL(doc.file);
-      } catch (e) {}
-    }
-    if (!src) {
-      const upperType = String(doc.Type || doc.type || "").toUpperCase();
-      if (upperType.includes("AAD") || doc.documentTypeId === 29) {
-        src = `${process.env.PUBLIC_URL}/images/aadhardummy.png`;
-      } else if (upperType.includes("PAN") || upperType.includes("NRIC") || doc.documentTypeId === 25) {
-        src = `${process.env.PUBLIC_URL}/images/pandummy.png`;
+    const direct = doc.ImagePath || doc.imagePath || doc.ImageURL || doc.imageUrl || doc.file || doc.preview;
+    if (direct && typeof direct === "string" && direct.trim() !== "") {
+      const trimmed = direct.trim();
+      if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+        return trimmed;
       }
+      return `https://tabenrollment.bhimagold.com/${trimmed.replace(/^\/+/, "")}`;
     }
-    return src;
+    return null;
   };
 
-  const handleOpenLightbox = (imgSrc, caption) => {
+  const handleOpenLightbox = (imgSrc, caption = "") => {
     if (!imgSrc) return;
     setLightboxImage(imgSrc);
-    setLightboxCaption(caption || "Document Preview");
+    setLightboxCaption(caption);
   };
+
+  // Helper for displaying clean text or "—"
+  const valOrDash = (val) => {
+    if (val === null || val === undefined) return "—";
+    const str = String(val).trim();
+    return str !== "" ? str : "—";
+  };
+
+  // Calculate estimated maturity date if not in data (11 months after start date)
+  const estimatedMaturity = useMemo(() => {
+    if (membershipData.maturityDate) return membershipData.maturityDate;
+    try {
+      const startDateStr = membershipData.startDate || new Date().toISOString().split("T")[0];
+      const d = new Date(startDateStr);
+      if (!isNaN(d.getTime())) {
+        d.setMonth(d.getMonth() + 11);
+        return d.toISOString().split("T")[0];
+      }
+    } catch {}
+    return "After 11 Months";
+  }, [membershipData]);
 
   if (!open) return null;
 
   return (
-    <div className="epm-overlay" onClick={onClose}>
-      <div className="epm-container" onClick={(e) => e.stopPropagation()}>
-        {/* ─── Header ─── */}
-        <div className="epm-header">
+    <div className="epm-overlay">
+      <div className="epm-container">
+        {/* ─── Top Header Bar ─── */}
+        <header className="epm-header">
           <div className="epm-header-left">
             <img
-              src={`${process.env.PUBLIC_URL}/images/bhima_logo3.png`}
-              alt="Bhima"
+              src={`${process.env.PUBLIC_URL || ""}/images/bhima_logo3.png`}
+              alt="Bhima Gold"
               className="epm-brand-logo"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
             />
             <div className="epm-header-titles">
               <h2>
-                <i className="bi bi-file-earmark-text"></i> Enrollment Preview
+                <i className="bi bi-file-earmark-text-fill text-warning"></i>
+                MEMBERSHIP ENROLLMENT APPLICATION
               </h2>
-              <p>Please review all entered details and documents before final save</p>
+              <p>Please review and verify all entered details before final submission</p>
             </div>
           </div>
+
           <div className="epm-header-right">
-            {branch && (
-              <span className="epm-badge-country">
-                Branch: {branch}
-              </span>
-            )}
             <span className="epm-badge-country">
               {isSingapore ? "🇸🇬 Singapore" : "🇮🇳 India"}
             </span>
+            <button
+              type="button"
+              className="epm-header-edit-btn"
+              onClick={() => onEditSection && onEditSection("subscriber-header")}
+              title="Return to form to edit details"
+            >
+              <i className="bi bi-pencil-square"></i>
+              <span>Edit Details</span>
+            </button>
             <button
               type="button"
               className="epm-btn-close"
@@ -161,25 +192,39 @@ const EnrollmentPreviewModal = ({
               &times;
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* ─── Scrollable Body ─── */}
+        {/* ─── Full-Screen Scrollable Form Body ─── */}
         <div className="epm-body">
-          {/* Hero Profile Card */}
+          {/* Status Alert Banner */}
+          <div className="epm-alert-banner">
+            <div className="epm-alert-icon">
+              <i className="bi bi-shield-check"></i>
+            </div>
+            <div className="epm-alert-text">
+              <strong>Application Form Preview & Verification</strong>
+              <span>
+                Carefully review all personal details, scheme selection, nominee, and uploaded documents.
+                You can click <strong>"Edit"</strong> on any section if changes are needed, or click <strong>"Confirm & Save Enrollment"</strong> below to complete your registration.
+              </span>
+            </div>
+          </div>
+
+          {/* Hero Profile Summary Card */}
           <div className="epm-hero-card">
             <div className="epm-avatar-wrap">
               {image ? (
                 <>
                   <img
                     src={image}
-                    alt="Customer Photo"
+                    alt="Customer"
                     className="epm-avatar-img"
                     onClick={() => handleOpenLightbox(image, "Customer Photo")}
                     style={{ cursor: "pointer" }}
                     title="Click to zoom photo"
                   />
-                  <span className="epm-avatar-badge" title="Photo Captured">
-                    <i className="bi bi-check"></i>
+                  <span className="epm-avatar-badge" title="Live Photo Captured">
+                    <i className="bi bi-check-lg"></i>
                   </span>
                 </>
               ) : (
@@ -191,258 +236,431 @@ const EnrollmentPreviewModal = ({
             </div>
 
             <div className="epm-hero-details">
-              <h3 className="epm-hero-name">
-                {subscriberData.subscriberName || "Subscriber Name"}
-              </h3>
+              <div className="epm-hero-top-row">
+                <div>
+                  <span className="epm-hero-tag">APPLICANT NAME</span>
+                  <h3 className="epm-hero-name">
+                    {subscriberData.subscriberName || "Subscriber Name"}
+                  </h3>
+                </div>
+                <div className="epm-hero-branch-pill">
+                  <i className="bi bi-geo-alt-fill"></i>
+                  <span>Branch: <strong>{branch || membershipData.branch || "SG"}</strong></span>
+                </div>
+              </div>
+
               <div className="epm-hero-meta">
                 {subscriberData.mobileNo && (
-                  <span>
-                    <i className="bi bi-phone"></i>
+                  <span className="epm-meta-chip">
+                    <i className="bi bi-telephone-fill"></i>
                     {isSingapore ? "+65 " : "+91 "}
                     {subscriberData.mobileNo}
                   </span>
                 )}
                 {subscriberData.email && (
-                  <span>
-                    <i className="bi bi-envelope"></i>
+                  <span className="epm-meta-chip">
+                    <i className="bi bi-envelope-fill"></i>
                     {subscriberData.email}
                   </span>
                 )}
                 {subscriberData.gender && (
-                  <span>
-                    <i className="bi bi-gender-ambiguous"></i>
+                  <span className="epm-meta-chip">
+                    <i className="bi bi-person-fill"></i>
                     {subscriberData.gender}
                   </span>
                 )}
                 {subscriberData.dob && (
-                  <span>
-                    <i className="bi bi-calendar-event"></i>
+                  <span className="epm-meta-chip">
+                    <i className="bi bi-calendar3"></i>
                     DOB: {subscriberData.dob}
                   </span>
                 )}
               </div>
 
               <div className="epm-hero-scheme-tag">
-                <span>Selected Scheme:</span>
-                <strong>{membershipData.selectedSchemeName || "—"}</strong>
+                <div className="epm-scheme-badge-icon">
+                  <i className="bi bi-gem"></i>
+                </div>
+                <div className="epm-scheme-badge-info">
+                  <span className="epm-scheme-badge-title">Selected Scheme</span>
+                  <strong className="epm-scheme-badge-name">
+                    {membershipData.selectedSchemeName || "Scheme Not Selected"}
+                  </strong>
+                </div>
                 {membershipData.installmentAmount && (
-                  <>
-                    <span>•</span>
-                    <strong>{formatCurrency(membershipData.installmentAmount, activeSymbol)} / Month</strong>
-                  </>
+                  <div className="epm-scheme-badge-amount">
+                    <span>Monthly Installment:</span>
+                    <strong>{formatCurrency(membershipData.installmentAmount, activeSymbol)}</strong>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Section 1: Subscriber Details */}
-          <div className="epm-section">
+          {/* ─── SECTION 1: Subscriber / Personal Details ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-person-lines-fill"></i> Personal & Subscriber Details
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">1</span>
+                <div>
+                  <h4 className="epm-section-title">Personal & Subscriber Details</h4>
+                  <p className="epm-section-subtitle">Primary applicant personal and residential information</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="epm-btn-edit-sec"
                 onClick={() => onEditSection && onEditSection("subscriber-header")}
               >
-                <i className="bi bi-pencil"></i> Edit
+                <i className="bi bi-pencil"></i> Edit Details
               </button>
             </div>
+
             <div className="epm-section-body">
-              <div className="epm-grid">
-                <div className="epm-item">
-                  <span className="epm-label">Subscriber Full Name</span>
-                  <span className="epm-val">{subscriberData.subscriberName || "—"}</span>
+              <div className="epm-form-grid">
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-person"></i> Subscriber Full Name
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.subscriberName)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Gender</span>
-                  <span className="epm-val">{subscriberData.gender || "—"}</span>
-                </div>
-                <div className="epm-item">
-                  <span className="epm-label">Date of Birth & Age</span>
-                  <span className="epm-val">
-                    {subscriberData.dob || "—"} {subscriberData.age ? `(${subscriberData.age} Yrs)` : ""}
-                  </span>
-                </div>
-                <div className="epm-item">
-                  <span className="epm-label">Mobile Number</span>
-                  <span className="epm-val">
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-telephone"></i> Mobile Number
+                  </label>
+                  <div className="epm-field-box">
                     {subscriberData.mobileNo ? `${isSingapore ? "+65 " : "+91 "}${subscriberData.mobileNo}` : "—"}
-                  </span>
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Email Address</span>
-                  <span className="epm-val">{subscriberData.email || "—"}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-envelope"></i> Email Address
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.email)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">
-                    {subscriberData.relationType ? `${subscriberData.relationType}'s Name` : "Father / Spouse Name"}
-                  </span>
-                  <span className="epm-val">{subscriberData.fatherName || "—"}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-gender-ambiguous"></i> Gender
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.gender)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Marital Status</span>
-                  <span className="epm-val">
-                    {subscriberData.maritalStatus || "—"}
-                    {subscriberData.anniversaryDate ? ` (Anniversary: ${subscriberData.anniversaryDate})` : ""}
-                  </span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-calendar-event"></i> Date of Birth
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.dob)}
+                  </div>
                 </div>
-                <div className="epm-item epm-grid-full">
-                  <span className="epm-label">Full Residential Address</span>
-                  <span className="epm-val">{fullAddress}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-geo"></i> Postal / PIN Code
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.pinCode)}
+                  </div>
                 </div>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-pin-map"></i> Area / Locality
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.area)}
+                  </div>
+                </div>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-building"></i> City
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.city)}
+                  </div>
+                </div>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-flag"></i> State / Country
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.state || (isSingapore ? "Singapore" : ""))}
+                  </div>
+                </div>
+
+                <div className="epm-form-field epm-col-span-2">
+                  <label className="epm-field-label">
+                    <i className="bi bi-house-door"></i> Address Line 1
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(subscriberData.address1)}
+                  </div>
+                </div>
+
+                {(subscriberData.address2 || subscriberData.address3) && (
+                  <div className="epm-form-field epm-col-span-2">
+                    <label className="epm-field-label">
+                      <i className="bi bi-house-door"></i> Address Line 2 & 3
+                    </label>
+                    <div className="epm-field-box">
+                      {[subscriberData.address2, subscriberData.address3].filter(Boolean).join(", ")}
+                    </div>
+                  </div>
+                )}
+
+                <div className="epm-form-field epm-col-span-full">
+                  <label className="epm-field-label">
+                    <i className="bi bi-map"></i> Complete Residential Address
+                  </label>
+                  <div className="epm-field-box epm-field-box-highlight">
+                    {valOrDash(fullAddress)}
+                  </div>
+                </div>
+
+                {subscriberData.permanentAddress && (
+                  <div className="epm-form-field epm-col-span-full">
+                    <label className="epm-field-label">
+                      <i className="bi bi-signpost-2"></i> Permanent Address
+                    </label>
+                    <div className="epm-field-box">
+                      {subscriberData.permanentAddress}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Section 2: Scheme & Membership Details */}
-          <div className="epm-section">
+          {/* ─── SECTION 2: Scheme & Membership Details ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-gem"></i> Scheme & Membership Details
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">2</span>
+                <div>
+                  <h4 className="epm-section-title">Scheme & Membership Details</h4>
+                  <p className="epm-section-subtitle">Selected installment plan, branch, and maturity parameters</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="epm-btn-edit-sec"
                 onClick={() => onEditSection && onEditSection("membership-header")}
               >
-                <i className="bi bi-pencil"></i> Edit
+                <i className="bi bi-pencil"></i> Edit Scheme
               </button>
             </div>
+
             <div className="epm-section-body">
-              <div className="epm-scheme-banner">
-                <div className="epm-scheme-stat">
-                  <span className="epm-stat-label">Scheme Name</span>
-                  <span className="epm-stat-val primary">{membershipData.selectedSchemeName || "—"}</span>
+              <div className="epm-scheme-stats-bar">
+                <div className="epm-stat-card primary">
+                  <span className="epm-stat-label">SELECTED SCHEME</span>
+                  <span className="epm-stat-val">
+                    {valOrDash(membershipData.selectedSchemeName)}
+                  </span>
                 </div>
-                <div className="epm-scheme-stat">
-                  <span className="epm-stat-label">Monthly Installment</span>
-                  <span className="epm-stat-val primary">
+                <div className="epm-stat-card highlight">
+                  <span className="epm-stat-label">MONTHLY INSTALLMENT</span>
+                  <span className="epm-stat-val">
                     {formatCurrency(membershipData.installmentAmount || 0, activeSymbol)}
                   </span>
                 </div>
-                <div className="epm-scheme-stat">
-                  <span className="epm-stat-label">Tenure</span>
+                <div className="epm-stat-card">
+                  <span className="epm-stat-label">TENURE DURATION</span>
                   <span className="epm-stat-val">
                     {membershipData.noOfInstallments || 11} Months
                   </span>
                 </div>
-                <div className="epm-scheme-stat">
-                  <span className="epm-stat-label">Expected Maturity</span>
+                <div className="epm-stat-card">
+                  <span className="epm-stat-label">ESTIMATED MATURITY</span>
                   <span className="epm-stat-val">
-                    {membershipData.maturityDate || "—"}
+                    {estimatedMaturity}
                   </span>
                 </div>
               </div>
 
-              <div className="epm-grid">
-                <div className="epm-item">
-                  <span className="epm-label">Scheme Code</span>
-                  <span className="epm-val">{membershipData.selectedSchemeCode || "—"}</span>
+              <div className="epm-form-grid" style={{ marginTop: "16px" }}>
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-upc-scan"></i> Scheme Code
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(membershipData.selectedSchemeCode)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Scheme Type</span>
-                  <span className="epm-val">{membershipData.schemeType || "Value Scheme"}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-tag"></i> Scheme Type
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(membershipData.schemeType || "Value Scheme")}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Start Date</span>
-                  <span className="epm-val">{membershipData.startDate || new Date().toISOString().split("T")[0]}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-calendar-check"></i> Scheme Start Date
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(membershipData.startDate || new Date().toISOString().split("T")[0])}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Branch</span>
-                  <span className="epm-val">{branch || membershipData.branch || "—"}</span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-shop"></i> Branch Code
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(branch || membershipData.branch || "SG")}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Nominee Details */}
-          <div className="epm-section">
+          {/* ─── SECTION 3: Nominee Details ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-people-fill"></i> Nominee Details
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">3</span>
+                <div>
+                  <h4 className="epm-section-title">Nominee Details</h4>
+                  <p className="epm-section-subtitle">Beneficiary information assigned to this membership scheme</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="epm-btn-edit-sec"
                 onClick={() => onEditSection && onEditSection("nominee-header")}
               >
-                <i className="bi bi-pencil"></i> Edit
+                <i className="bi bi-pencil"></i> Edit Nominee
               </button>
             </div>
+
             <div className="epm-section-body">
-              <div className="epm-grid">
-                <div className="epm-item">
-                  <span className="epm-label">Nominee Name</span>
-                  <span className="epm-val">{nomineeData.nomineename || "—"}</span>
+              <div className="epm-form-grid">
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-person-heart"></i> Nominee Full Name
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(nomineeData.nomineename)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Relationship</span>
-                  <span className="epm-val">
-                    {nomineeData.relationshipName || nomineeData.relationship || "—"}
-                  </span>
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-people"></i> Relationship to Applicant
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(nomineeData.relationshipName || nomineeData.relationship)}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Nominee Mobile</span>
-                  <span className="epm-val">
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-telephone"></i> Nominee Contact Number
+                  </label>
+                  <div className="epm-field-box">
                     {nomineeData.nomineephoneno ? `${isSingapore ? "+65 " : "+91 "}${nomineeData.nomineephoneno}` : "—"}
-                  </span>
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">Nominee Address</span>
-                  <span className="epm-val">{nomineeData.nomineeaddress || "Same as Subscriber"}</span>
+
+                <div className="epm-form-field epm-col-span-full">
+                  <label className="epm-field-label">
+                    <i className="bi bi-house"></i> Nominee Residential Address
+                  </label>
+                  <div className="epm-field-box">
+                    {valOrDash(nomineeData.nomineeaddress || (subscriberData.subscriberName ? "Same as Subscriber Address" : "—"))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 4: Guardian Details (if minor) */}
+          {/* ─── SECTION 4: Guardian Details (Only if Minor / Guardian present) ─── */}
           {(showGuardianDetails || guardaianData.guardname) && (
-            <div className="epm-section">
+            <div className="epm-form-section">
               <div className="epm-section-header">
-                <h4 className="epm-section-title">
-                  <i className="bi bi-shield-check"></i> Guardian Details (for Minor)
-                </h4>
+                <div className="epm-section-title-wrap">
+                  <span className="epm-section-num">4</span>
+                  <div>
+                    <h4 className="epm-section-title">Guardian Details (for Minor)</h4>
+                    <p className="epm-section-subtitle">Appointed legal guardian information</p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   className="epm-btn-edit-sec"
                   onClick={() => onEditSection && onEditSection("guardian-header")}
                 >
-                  <i className="bi bi-pencil"></i> Edit
+                  <i className="bi bi-pencil"></i> Edit Guardian
                 </button>
               </div>
+
               <div className="epm-section-body">
-                <div className="epm-grid">
-                  <div className="epm-item">
-                    <span className="epm-label">Guardian Name</span>
-                    <span className="epm-val">{guardaianData.guardname || "—"}</span>
+                <div className="epm-form-grid">
+                  <div className="epm-form-field">
+                    <label className="epm-field-label">
+                      <i className="bi bi-shield-person"></i> Guardian Name
+                    </label>
+                    <div className="epm-field-box">
+                      {valOrDash(guardaianData.guardname)}
+                    </div>
                   </div>
-                  <div className="epm-item">
-                    <span className="epm-label">Relationship to Nominee</span>
-                    <span className="epm-val">
-                      {guardaianData.guardrelationshipName || guardaianData.guardrelationship || "—"}
-                    </span>
+
+                  <div className="epm-form-field">
+                    <label className="epm-field-label">
+                      <i className="bi bi-people"></i> Relationship to Nominee
+                    </label>
+                    <div className="epm-field-box">
+                      {valOrDash(guardaianData.guardrelationshipName || guardaianData.guardrelationship)}
+                    </div>
                   </div>
-                  <div className="epm-item">
-                    <span className="epm-label">Guardian Gender</span>
-                    <span className="epm-val">{guardaianData.guardGender || "—"}</span>
+
+                  <div className="epm-form-field">
+                    <label className="epm-field-label">
+                      <i className="bi bi-gender-ambiguous"></i> Guardian Gender
+                    </label>
+                    <div className="epm-field-box">
+                      {valOrDash(guardaianData.guardGender)}
+                    </div>
                   </div>
-                  <div className="epm-item">
-                    <span className="epm-label">Guardian DOB</span>
-                    <span className="epm-val">{guardaianData.guarddob || "—"}</span>
+
+                  <div className="epm-form-field">
+                    <label className="epm-field-label">
+                      <i className="bi bi-calendar-event"></i> Guardian Date of Birth
+                    </label>
+                    <div className="epm-field-box">
+                      {valOrDash(guardaianData.guarddob)}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Section 5: Identity & Uploaded Documents */}
-          <div className="epm-section">
+          {/* ─── SECTION 5: Identity & Uploaded Documents ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-card-image"></i> Identity & Uploaded Documents
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "5" : "4"}</span>
+                <div>
+                  <h4 className="epm-section-title">Identity & Uploaded Documents</h4>
+                  <p className="epm-section-subtitle">Government-issued identity cards and proof documents submitted</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="epm-btn-edit-sec"
@@ -451,6 +669,7 @@ const EnrollmentPreviewModal = ({
                 <i className="bi bi-pencil"></i> Edit Docs
               </button>
             </div>
+
             <div className="epm-section-body">
               {combinedDocs.length > 0 ? (
                 <div className="epm-docs-grid">
@@ -466,20 +685,20 @@ const EnrollmentPreviewModal = ({
                             <i className="bi bi-file-earmark-check-fill text-warning"></i>
                             {docName}
                           </span>
-                          <span style={{ fontSize: "11px", color: "#8c5c34", fontWeight: "600" }}>
+                          <span className="epm-doc-seq-badge">
                             Doc #{idx + 1}
                           </span>
                         </div>
 
                         <div className="epm-doc-number-row">
-                          <span>Doc Number:</span>
+                          <span className="epm-doc-num-label">DOCUMENT NUMBER:</span>
                           <span className="doc-id-pill">{docNumber}</span>
                         </div>
 
                         <div
                           className="epm-doc-preview-box"
                           onClick={() => handleOpenLightbox(docImage, `${docName} (${docNumber})`)}
-                          title="Click to view full image"
+                          title={docImage ? "Click to view full image" : "No image preview available"}
                         >
                           {docImage ? (
                             <>
@@ -495,7 +714,7 @@ const EnrollmentPreviewModal = ({
                             </>
                           ) : (
                             <div className="epm-doc-empty">
-                              <i className="bi bi-file-earmark-arrow-up fs-2"></i>
+                              <i className="bi bi-file-earmark-arrow-up"></i>
                               <span>Document on record</span>
                             </div>
                           )}
@@ -505,20 +724,27 @@ const EnrollmentPreviewModal = ({
                   })}
                 </div>
               ) : (
-                <div className="epm-no-docs">
-                  <i className="bi bi-info-circle me-2"></i>
-                  No documents uploaded. (Identity documents are optional for Singapore enrollments under threshold)
+                <div className="epm-no-docs-banner">
+                  <i className="bi bi-info-circle-fill"></i>
+                  <div>
+                    <strong>No Identity Documents Uploaded</strong>
+                    <p>Identity documents are optional for Singapore enrollments below the $20,000 threshold.</p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Section 6: Photo & Digital Signature */}
-          <div className="epm-section">
+          {/* ─── SECTION 6: Live Photograph & Customer Signature Proof ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-shield-lock-fill"></i> Photo & Customer Signature Proof
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "6" : "5"}</span>
+                <div>
+                  <h4 className="epm-section-title">Photo & Signature Proof</h4>
+                  <p className="epm-section-subtitle">Live photo verification and digital signature confirmation</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="epm-btn-edit-sec"
@@ -527,75 +753,124 @@ const EnrollmentPreviewModal = ({
                 <i className="bi bi-pencil"></i> Edit Photo
               </button>
             </div>
+
             <div className="epm-section-body">
               <div className="epm-proofs-grid">
+                {/* Photo Proof */}
                 <div className="epm-proof-card">
-                  <span className="epm-proof-title">
-                    <i className="bi bi-camera me-1"></i> Customer Photo
-                  </span>
-                  {image ? (
-                    <img
-                      src={image}
-                      alt="Customer Camera Capture"
-                      className="epm-proof-img"
-                      onClick={() => handleOpenLightbox(image, "Customer Photo")}
-                      style={{ cursor: "pointer" }}
-                      title="Click to zoom"
-                    />
-                  ) : (
-                    <span style={{ fontSize: "12px", color: "#8c5c34" }}>No photo captured</span>
-                  )}
+                  <div className="epm-proof-head">
+                    <i className="bi bi-camera-fill text-warning"></i>
+                    <span>Live Customer Photograph</span>
+                  </div>
+                  <div className="epm-proof-box">
+                    {image ? (
+                      <div
+                        className="epm-proof-img-wrap"
+                        onClick={() => handleOpenLightbox(image, "Live Customer Photograph")}
+                        title="Click to zoom photograph"
+                      >
+                        <img
+                          src={image}
+                          alt="Customer Camera Capture"
+                          className="epm-proof-img"
+                        />
+                        <div className="epm-proof-hover">
+                          <i className="bi bi-zoom-in"></i> Click to Zoom
+                        </div>
+                        <span className="epm-proof-status-tag verified">
+                          <i className="bi bi-check-circle-fill"></i> Live Photo Captured
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="epm-proof-empty">
+                        <i className="bi bi-camera"></i>
+                        <span>No photo captured</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
+                {/* Signature Proof */}
                 <div className="epm-proof-card">
-                  <span className="epm-proof-title">
-                    <i className="bi bi-pen me-1"></i> Customer Signature
-                  </span>
-                  {ekycSignature ? (
-                    <img
-                      src={ekycSignature}
-                      alt="Customer Signature"
-                      className="epm-proof-img"
-                      onClick={() => handleOpenLightbox(ekycSignature, "Customer Signature")}
-                      style={{ cursor: "pointer" }}
-                      title="Click to zoom"
-                    />
-                  ) : (
-                    <span style={{ fontSize: "12px", color: "#8c5c34" }}>
-                      Digital signature will be captured / confirmed on save
-                    </span>
-                  )}
+                  <div className="epm-proof-head">
+                    <i className="bi bi-pen-fill text-warning"></i>
+                    <span>Customer Digital Signature</span>
+                  </div>
+                  <div className="epm-proof-box">
+                    {ekycSignature ? (
+                      <div
+                        className="epm-proof-img-wrap"
+                        onClick={() => handleOpenLightbox(ekycSignature, "Customer Signature")}
+                        title="Click to zoom signature"
+                      >
+                        <img
+                          src={ekycSignature}
+                          alt="Customer Signature"
+                          className="epm-proof-img"
+                        />
+                        <div className="epm-proof-hover">
+                          <i className="bi bi-zoom-in"></i> Click to Zoom
+                        </div>
+                        <span className="epm-proof-status-tag verified">
+                          <i className="bi bi-check-circle-fill"></i> Digital Signature Verified
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="epm-proof-empty">
+                        <i className="bi bi-pencil"></i>
+                        <span>Digital signature will be recorded & confirmed upon final submission</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 7: Payment Details & Terms */}
-          <div className="epm-section">
+          {/* ─── SECTION 7: Payment & Declaration ─── */}
+          <div className="epm-form-section">
             <div className="epm-section-header">
-              <h4 className="epm-section-title">
-                <i className="bi bi-credit-card-2-front-fill"></i> Payment Mode & Terms
-              </h4>
+              <div className="epm-section-title-wrap">
+                <span className="epm-section-num">{showGuardianDetails || guardaianData.guardname ? "7" : "6"}</span>
+                <div>
+                  <h4 className="epm-section-title">Payment Mode & Declaration</h4>
+                  <p className="epm-section-subtitle">Payment method, amount payable, and applicant consent</p>
+                </div>
+              </div>
             </div>
+
             <div className="epm-section-body">
-              <div className="epm-grid">
-                <div className="epm-item">
-                  <span className="epm-label">Payment Mode</span>
-                  <span className="epm-val" style={{ textTransform: "capitalize", fontWeight: "700" }}>
-                    {paymentMode === "online" ? "💳 Online Payment" : "🏬 Offline Payment (Store Visit)"}
-                  </span>
+              <div className="epm-form-grid">
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-credit-card-2-front"></i> Selected Payment Mode
+                  </label>
+                  <div className="epm-field-box epm-payment-badge">
+                    {paymentMode === "online" ? "💳 Online Payment" : "🏬 Store Visit / Offline Payment"}
+                  </div>
                 </div>
-                <div className="epm-item">
-                  <span className="epm-label">First Installment Payable</span>
-                  <span className="epm-val epm-val-highlight">
+
+                <div className="epm-form-field">
+                  <label className="epm-field-label">
+                    <i className="bi bi-cash-stack"></i> First Installment Payable
+                  </label>
+                  <div className="epm-field-box epm-amount-highlight">
                     {formatCurrency(membershipData.installmentAmount || 0, activeSymbol)}
-                  </span>
+                  </div>
                 </div>
-                <div className="epm-item epm-grid-full">
-                  <span className="epm-label">Terms & Conditions</span>
-                  <span className="epm-val" style={{ color: "#28a745" }}>
-                    <i className="bi bi-check-circle-fill me-1"></i> Terms & Conditions accepted and verified
-                  </span>
+
+                <div className="epm-form-field epm-col-span-full">
+                  <label className="epm-field-label">
+                    <i className="bi bi-check-circle"></i> Applicant Terms & Verification Declaration
+                  </label>
+                  <div className="epm-declaration-box">
+                    <i className="bi bi-shield-check text-success fs-5"></i>
+                    <span>
+                      I hereby declare and confirm that all details, personal information, and documents provided
+                      in this application form are accurate, complete, and legally binding under the Bhima Gold
+                      Scheme Terms and Conditions.
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -603,44 +878,52 @@ const EnrollmentPreviewModal = ({
         </div>
 
         {/* ─── Sticky Footer Action Bar ─── */}
-        <div className="epm-footer">
+        <footer className="epm-footer">
           <div className="epm-footer-left">
             <button
               type="button"
-              className="epm-btn-edit"
+              className="epm-btn-edit-footer"
               onClick={() => onEditSection && onEditSection("subscriber-header")}
               title="Return to form to edit details"
             >
-              <i className="bi bi-pencil-square"></i>
-              Edit Details
+              <i className="bi bi-arrow-left"></i>
+              <span>Back to Edit Form</span>
             </button>
           </div>
 
           <div className="epm-footer-right">
             <button
               type="button"
-              className="epm-btn-save"
+              className="epm-btn-cancel-footer"
+              onClick={onClose}
+              title="Close preview"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="epm-btn-save-footer"
               disabled={isSaving}
               onClick={onConfirmSave}
               title="Confirm details and save enrollment"
             >
               {isSaving ? (
                 <>
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                   Saving Enrollment...
                 </>
               ) : (
                 <>
                   <i className="bi bi-check2-circle fs-5"></i>
-                  Confirm & Save Enrollment
+                  <span>Confirm & Save Enrollment</span>
                 </>
               )}
             </button>
           </div>
-        </div>
+        </footer>
       </div>
 
-      {/* ─── Image Zoom Lightbox ─── */}
+      {/* ─── Full-screen Image Zoom Lightbox ─── */}
       {lightboxImage && (
         <div
           className="epm-lightbox-overlay"

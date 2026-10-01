@@ -762,14 +762,14 @@ const EnrollmentPreviewModal = ({
             </div>
           </section>
 
-          {/* ─── SECTION 6: Photo & Digital Signature Proof ─── */}
+          {/* ─── SECTION 6: Customer Photograph ─── */}
           <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
                 <span className="epm-section-num">{showGuardianDetails || guardName ? "6" : "5"}</span>
                 <div>
-                  <h4 className="epm-section-title">Photo & Signature Proof</h4>
-                  <p className="epm-section-subtitle">Live photo verification and digital signature confirmation</p>
+                  <h4 className="epm-section-title">Customer Photograph</h4>
+                  <p className="epm-section-subtitle">Live photo verification captured during registration</p>
                 </div>
               </div>
               <button
@@ -782,7 +782,7 @@ const EnrollmentPreviewModal = ({
             </div>
 
             <div className="epm-section-body">
-              <div className="epm-proofs-grid">
+              <div className="epm-proofs-grid" style={{ gridTemplateColumns: "1fr" }}>
                 {/* Photo Proof */}
                 <div className="epm-proof-card">
                   <div className="epm-proof-head">
@@ -817,7 +817,8 @@ const EnrollmentPreviewModal = ({
                   </div>
                 </div>
 
-                {/* Signature Proof */}
+                {/* Customer Digital Signature — commented out as requested */}
+                {/*
                 <div className="epm-proof-card">
                   <div className="epm-proof-head">
                     <i className="bi bi-pen-fill text-warning"></i>
@@ -850,6 +851,7 @@ const EnrollmentPreviewModal = ({
                     )}
                   </div>
                 </div>
+                */}
               </div>
             </div>
           </section>

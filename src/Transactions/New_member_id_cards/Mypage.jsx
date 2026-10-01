@@ -40,6 +40,7 @@ import EkycQRModal from "./EkycQRModal";
 
 import Paymentgateway from "./Paymentgateway";
 import Header from "../../header";
+import EnrollmentPreviewModal from "./EnrollmentPreviewModal";
 
 // Document ID mapping based on database LovName:
 // 24: Scheme Opening Document
@@ -2080,6 +2081,50 @@ const Mypage = () => {
       }
     }
   };
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewSaveMode, setPreviewSaveMode] = useState("offline");
+
+  const handleRequestPreview = (mode = "offline") => {
+    const isSingapore = selectedCountry === "Singapore";
+    if (!image) {
+      toast.warn("Please capture your photo in the Camera section before saving.");
+      setExpanded("camera-header");
+      setTimeout(() => {
+        const el = document.getElementById("camera-header");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+      return;
+    }
+    if (!isSingapore && (!alldocs || alldocs.length === 0)) {
+      toast.warn("Please upload required documents before saving.");
+      setExpanded("uploaddoc-header");
+      setTimeout(() => {
+        const el = document.getElementById("uploaddoc-header");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+      return;
+    }
+    setPreviewSaveMode(mode);
+    setIsPreviewOpen(true);
+  };
+
+  const handleConfirmSaveFromPreview = async () => {
+    setIsPreviewOpen(false);
+    await SaveData(previewSaveMode || "offline");
+  };
+
+  const handleEditSectionFromPreview = (sectionKey = "subscriber-header") => {
+    setIsPreviewOpen(false);
+    setExpanded(sectionKey);
+    setTimeout(() => {
+      const el = document.getElementById(sectionKey);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 150);
+  };
+
   return (
     <Container component="main" className="mypage-header" maxWidth="md">
       {isSaving && (
@@ -2470,6 +2515,7 @@ const Mypage = () => {
               ekycSignature={ekycSignature}
               setEkycSignature={setEkycSignature}
               generateEnrollmentPdfProp={generateEnrollmentPdf}
+              onRequestPreview={handleRequestPreview}
             />
           </AccordionDetails>
         </Accordion>
@@ -2641,6 +2687,27 @@ const Mypage = () => {
           state: subscriberData.state || "",
           pincode: subscriberData.pinCode || "",
         }}
+      />
+
+      <EnrollmentPreviewModal
+        open={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        onConfirmSave={handleConfirmSaveFromPreview}
+        onEditSection={handleEditSectionFromPreview}
+        subscriberData={subscriberData}
+        membershipData={membershipData}
+        nomineeData={nomineeData}
+        guardaianData={guardaianData}
+        showGuardianDetails={showGuardianDetails}
+        image={image}
+        uploadedDocs={uploadedDocs}
+        alldocs={alldocs}
+        ekycSignature={ekycSignature}
+        paymentMode={previewSaveMode || paymentmode || "offline"}
+        selectedCountry={selectedCountry}
+        currencySymbol={activeSymbol}
+        branch={getCleanBranch(branch || membershipData.branch)}
+        isSaving={isSaving}
       />
 
       <ToastContainer />

@@ -128,6 +128,7 @@ function Paymentgateway({
   ekycSignature,
   setEkycSignature,
   generateEnrollmentPdfProp,
+  onRequestPreview,
 }) {
   const { currencySymbol, selectedCountry } = useSelector((state) => state.customer || {});
   const activeSymbol = currencySymbol || "₹";
@@ -719,16 +720,42 @@ function Paymentgateway({
                   toast.error("Please accept the Terms and Conditions");
                   return;
                 }
-                // As of now: don't take signature on save
-                // if (isEsignEnabled && !hasEkycSignature && !isCustomerSigned) {
-                //   toast.error("Customer signature is required to save enrollment.");
-                //   setShowSignPadModal(true);
-                //   return;
-                // }
-                SaveOffline();
+                if (typeof onRequestPreview === "function") {
+                  onRequestPreview("offline");
+                } else {
+                  SaveOffline();
+                }
               }}
             >
               Save Offline
+            </button>
+            <button
+              type="button"
+              className="pay-btn-secondary"
+              style={{
+                marginTop: "10px",
+                width: "100%",
+                padding: "10px 16px",
+                background: "transparent",
+                border: "1.5px solid #614119",
+                color: "#614119",
+                borderRadius: "6px",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "all 0.2s ease"
+              }}
+              onClick={() => {
+                if (typeof onRequestPreview === "function") {
+                  onRequestPreview("offline");
+                }
+              }}
+            >
+              <i className="bi bi-file-earmark-person"></i> Preview Enrollment
             </button>
           </div>
         </div>
@@ -1175,6 +1202,10 @@ function Paymentgateway({
                             type="button"
                             disabled={isSavingAfterSign || !!userDraftid}
                             onClick={async () => {
+                              if (typeof onRequestPreview === "function") {
+                                onRequestPreview(paymentMethod || "offline");
+                                return;
+                              }
                               setIsSavingAfterSign(true);
                               try {
                                 const draftId = await CallSaveDraft(paymentMethod || "offline");
@@ -1424,7 +1455,11 @@ function Paymentgateway({
                     toast.error("Please accept the Terms and Conditions");
                     return;
                   }
-                  SaveOffline();
+                  if (typeof onRequestPreview === "function") {
+                    onRequestPreview("offline");
+                  } else {
+                    SaveOffline();
+                  }
                 }}
               >
                 {"Save Offline"}

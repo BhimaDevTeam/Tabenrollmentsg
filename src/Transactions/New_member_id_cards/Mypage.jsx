@@ -2087,23 +2087,19 @@ const Mypage = () => {
 
   const handleRequestPreview = (mode = "offline") => {
     const isSingapore = selectedCountry === "Singapore";
-    if (!image) {
-      toast.warn("Please capture your photo in the Camera section before saving.");
-      setExpanded("camera-header");
-      setTimeout(() => {
-        const el = document.getElementById("camera-header");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-      return;
-    }
+    // For India, documents are mandatory — block if missing
     if (!isSingapore && (!alldocs || alldocs.length === 0)) {
-      toast.warn("Please upload required documents before saving.");
+      toast.warn("Please upload required identity documents before saving.");
       setExpanded("uploaddoc-header");
       setTimeout(() => {
         const el = document.getElementById("uploaddoc-header");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
       return;
+    }
+    // Photo is recommended but we show preview anyway with a soft warning
+    if (!image) {
+      toast.warn("⚠️ No photo captured. You can still preview and save, but a customer photo is recommended.");
     }
     setPreviewSaveMode(mode);
     setIsPreviewOpen(true);

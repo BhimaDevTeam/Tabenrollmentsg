@@ -959,7 +959,8 @@ const EnrollmentPreviewModal = ({
               title="Return to form to edit details"
             >
               <i className="bi bi-arrow-left"></i>
-              <span>Back to Edit Form</span>
+              <span className="epm-text-desktop">Back to Edit Form</span>
+              <span className="epm-text-mobile">Edit Form</span>
             </button>
           </div>
 
@@ -972,7 +973,8 @@ const EnrollmentPreviewModal = ({
                 title="Scroll down to complete review and enable save"
               >
                 <i className="bi bi-arrow-down-circle"></i>
-                <span>Scroll to Bottom to Enable Save</span>
+                <span className="epm-text-desktop">Scroll to Bottom to Enable Save</span>
+                <span className="epm-text-mobile">Scroll to Bottom</span>
               </button>
             )}
             <button
@@ -997,12 +999,13 @@ const EnrollmentPreviewModal = ({
               {isSaving ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Saving Enrollment...
+                  Saving...
                 </>
               ) : (
                 <>
                   <i className="bi bi-check2-circle fs-5"></i>
-                  <span>Confirm & Save Enrollment</span>
+                  <span className="epm-text-desktop">Confirm & Save Enrollment</span>
+                  <span className="epm-text-mobile">Confirm & Save</span>
                 </>
               )}
             </button>

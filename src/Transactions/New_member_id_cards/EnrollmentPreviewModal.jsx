@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { formatCurrency } from "../../utlis/currencyUtils";
 import "./EnrollmentPreviewModal.css";
 
@@ -24,9 +24,52 @@ const EnrollmentPreviewModal = ({
 }) => {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [lightboxCaption, setLightboxCaption] = useState("");
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const overlayRef = useRef(null);
 
   const activeSymbol = currencySymbol || (selectedCountry === "Singapore" ? "S$" : "₹");
   const isSingapore = selectedCountry === "Singapore";
+
+  // Reset scroll detection when modal opens
+  useEffect(() => {
+    if (open) {
+      setHasScrolledToBottom(false);
+
+      const checkScrollable = () => {
+        if (overlayRef.current) {
+          const { scrollHeight, clientHeight } = overlayRef.current;
+          // If content fits completely on screen without scrolling
+          if (scrollHeight <= clientHeight + 40) {
+            setHasScrolledToBottom(true);
+          }
+        }
+      };
+
+      const timer = setTimeout(checkScrollable, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  // Handle scroll event to unlock save when near bottom
+  const handleScroll = (e) => {
+    if (hasScrolledToBottom) return;
+    const el = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    // Unlock when within 90px of bottom
+    if (scrollTop + clientHeight >= scrollHeight - 90) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
+  const handleScrollToBottom = () => {
+    if (overlayRef.current) {
+      overlayRef.current.scrollTo({
+        top: overlayRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setTimeout(() => setHasScrolledToBottom(true), 600);
+    }
+  };
 
   // Safe fallback string helper
   const valOrDash = (val) => {
@@ -174,7 +217,7 @@ const EnrollmentPreviewModal = ({
   if (!open) return null;
 
   return (
-    <div className="epm-overlay">
+    <div className="epm-overlay" ref={overlayRef} onScroll={handleScroll}>
       <div className="epm-container">
         {/* ─── Top Header Bar ─── */}
         <header className="epm-header">
@@ -921,6 +964,17 @@ const EnrollmentPreviewModal = ({
           </div>
 
           <div className="epm-footer-right">
+            {!hasScrolledToBottom && (
+              <button
+                type="button"
+                className="epm-btn-scroll-down"
+                onClick={handleScrollToBottom}
+                title="Scroll down to complete review and enable save"
+              >
+                <i className="bi bi-arrow-down-circle"></i>
+                <span>Scroll to Bottom to Enable Save</span>
+              </button>
+            )}
             <button
               type="button"
               className="epm-btn-cancel-footer"
@@ -931,10 +985,14 @@ const EnrollmentPreviewModal = ({
             </button>
             <button
               type="button"
-              className="epm-btn-save-footer"
-              disabled={isSaving}
+              className={`epm-btn-save-footer ${!hasScrolledToBottom ? "disabled-scroll-lock" : ""}`}
+              disabled={isSaving || !hasScrolledToBottom}
               onClick={onConfirmSave}
-              title="Confirm details and save enrollment"
+              title={
+                !hasScrolledToBottom
+                  ? "Please scroll to the bottom of the page to review all details before confirming"
+                  : "Confirm details and save enrollment"
+              }
             >
               {isSaving ? (
                 <>

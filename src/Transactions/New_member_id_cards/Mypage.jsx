@@ -434,6 +434,17 @@ const Mypage = () => {
   const validateSubscriber = () => {
     function CustomerValidation() {
       const errors = {};
+      const isSingapore = selectedCountry === "Singapore";
+      const cleanMob = String(subscriberData.mobileNo || "").replace(/\D/g, "");
+      const requiredMobDigits = isSingapore ? 8 : 10;
+      if (!cleanMob) {
+        errors.mobileNo = "Mobile number is required.";
+      } else if (cleanMob.length !== requiredMobDigits) {
+        errors.mobileNo = `Mobile number must be ${requiredMobDigits} digits.`;
+      } else if (subscriberData.isMobileVerified === false) {
+        errors.mobileNo = "Please verify your mobile number with OTP.";
+      }
+
       if (!subscriberData.subscriberName) {
         errors.subscriberName = "Subscriber name is required";
       }
@@ -453,10 +464,12 @@ const Mypage = () => {
           return a !== null && !isNaN(a) && a >= 18;
         });
         const isEnrollingNew = !selectedCustomerID || (!selectedCustomerID.Cust_ID && !selectedCustomerID.CustomerID && !selectedCustomerID.Name);
-        if ((selectedId === "minor" || hasExistingMajor) && isEnrollingNew) {
+        if (isEnrollingNew) {
           const age = calculateAge(subscriberData.dob);
-          if (age !== null && age >= 18) {
-            errors.dob = "Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment.";
+          if (age !== null && age < 18) {
+            errors.dob = "Minor enrollment is not allowed. Subscriber must be 18 years or older.";
+          } else if (hasExistingMajor || selectedId === "minor") {
+            errors.dob = "Only 1 major is allowed with this mobile number. Minor enrollment is not allowed.";
           }
         }
       }
@@ -464,11 +477,12 @@ const Mypage = () => {
         errors.email = "Email ID is required.";
       } else if (!/\S+@\S+\.\S+/.test(subscriberData.email)) {
         errors.email = "Email is invalid.";
+      } else if (subscriberData.isEmailVerified === false) {
+        errors.email = "Please verify your email address with OTP.";
       }
       if (!subscriberData.address1.trim() && aadharverified !== 1) {
         errors.address1 = "Address is required.";
       }
-      const isSingapore = selectedCountry === "Singapore";
       if (!/^\d{6}$/.test(subscriberData.pinCode)) {
         errors.pinCode = isSingapore ? "PO Code is required (6 digits)" : "Pin code is required";
       }
@@ -1322,6 +1336,43 @@ const Mypage = () => {
 
       if (isSingapore && insAmt >= SG_NRIC_THRESHOLD && !hasNric) {
         alert(`For installment amount $${insAmt.toLocaleString()} ($20,000 & above), NRIC Card is mandatory. Please upload your NRIC Card.`);
+        return;
+      }
+
+      const isEnrollingNewSub = !selectedCustomerID || (!selectedCustomerID.Cust_ID && !selectedCustomerID.CustomerID && !selectedCustomerID.Name);
+      if (isEnrollingNewSub) {
+        const subAge = subscriberData.dob ? calculateAge(subscriberData.dob) : null;
+        if (subAge !== null && subAge < 18) {
+          alert("Minor enrollment is not allowed. Subscriber must be 18 years or older.");
+          return;
+        }
+      }
+
+      const cleanSubMob = String(subscriberData.mobileNo || "").replace(/\D/g, "");
+      const reqMobDigits = isSingapore ? 8 : 10;
+      if (!cleanSubMob) {
+        toast.error("Mobile number is required.");
+        setExpanded("subscriber-header");
+        return;
+      }
+      if (cleanSubMob.length !== reqMobDigits) {
+        toast.error(`Mobile number must be ${reqMobDigits} digits.`);
+        setExpanded("subscriber-header");
+        return;
+      }
+      if (subscriberData.isMobileVerified === false) {
+        toast.error("Please verify your mobile number with OTP.");
+        setExpanded("subscriber-header");
+        return;
+      }
+      if (!subscriberData.email) {
+        toast.error("Email ID is required.");
+        setExpanded("subscriber-header");
+        return;
+      }
+      if (subscriberData.isEmailVerified === false) {
+        toast.error("Please verify your email address with OTP.");
+        setExpanded("subscriber-header");
         return;
       }
 
@@ -2285,7 +2336,7 @@ const Mypage = () => {
             aria-controls="membership-content"
             id="membership-header"
           >
-            <Typography sx={{ color: "#fff" }}>Scheme Details</Typography>
+            <Typography sx={{ color: "#fff" }}>Plan Details</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Membershipdetails
@@ -2568,7 +2619,7 @@ const Mypage = () => {
                 fontSize: { xs: "16px" },
               }}
             >
-              " Thank you for Subscribing for JPP Scheme"
+              " Thank you for Subscribing for JPP Plan"
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">
               <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
@@ -2577,7 +2628,7 @@ const Mypage = () => {
                 )}
                 {subscriberData.email && <li>Email: {subscriberData.email}</li>}
                 <li>Subscriber Name: {subscriberData.subscriberName}</li>
-                <li>Scheme Name: {membershipData.selectedSchemeName}</li>
+                <li>Plan Name: {membershipData.selectedSchemeName}</li>
                 <li>
                   Installment Amount:{" "}
                   {membershipData.installmentAmount
@@ -2644,7 +2695,7 @@ const Mypage = () => {
                 fontSize: { xs: "16px" },
               }}
             >
-              "Thank you for your interest in the JPP Scheme. Please contact a
+              "Thank you for your interest in the JPP Plan. Please contact a
               Bhima agent to proceed with the payment."
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">
@@ -2654,7 +2705,7 @@ const Mypage = () => {
                 )}
                 {subscriberData.email && <li>Email: {subscriberData.email}</li>}
                 <li>Subscriber Name: {subscriberData.subscriberName}</li>
-                <li>Scheme Name: {membershipData.selectedSchemeName}</li>
+                <li>Plan Name: {membershipData.selectedSchemeName}</li>
                 <li>
                   Installment Amount: {formatCurrency(membershipData.installmentAmount || 0, activeSymbol)}
                 </li>

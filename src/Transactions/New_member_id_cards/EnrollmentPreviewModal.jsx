@@ -512,13 +512,13 @@ const EnrollmentPreviewModal = ({
             </div>
           </section>
 
-          {/* ─── SECTION 2: Scheme & Membership Details ─── */}
+          {/* ─── SECTION 2: Plan & Membership Details ─── */}
           <section className="epm-form-section">
             <div className="epm-section-header">
               <div className="epm-section-title-wrap">
                 <span className="epm-section-num">2</span>
                 <div>
-                  <h4 className="epm-section-title">Scheme & Membership Details</h4>
+                  <h4 className="epm-section-title">Plan & Membership Details</h4>
                   <p className="epm-section-subtitle">Selected installment plan, branch, and maturity parameters</p>
                 </div>
               </div>
@@ -527,14 +527,14 @@ const EnrollmentPreviewModal = ({
                 className="epm-btn-edit-sec"
                 onClick={() => onEditSection && onEditSection("membership-header")}
               >
-                <i className="bi bi-pencil"></i> Edit Scheme
+                <i className="bi bi-pencil"></i> Edit Plan
               </button>
             </div>
 
             <div className="epm-section-body">
               <div className="epm-scheme-stats-bar">
                 <div className="epm-stat-card primary">
-                  <span className="epm-stat-label">SELECTED SCHEME</span>
+                  <span className="epm-stat-label">SELECTED PLAN</span>
                   <span className="epm-stat-val">
                     {valOrDash(membershipData.selectedSchemeName)}
                   </span>
@@ -562,7 +562,7 @@ const EnrollmentPreviewModal = ({
               <div className="epm-form-grid" style={{ marginTop: "16px" }}>
                 <div className="epm-form-field">
                   <label className="epm-field-label">
-                    <i className="bi bi-upc-scan"></i> Scheme Code
+                    <i className="bi bi-upc-scan"></i> Plan Code
                   </label>
                   <div className="epm-field-box">
                     {valOrDash(membershipData.selectedSchemeCode)}
@@ -571,16 +571,16 @@ const EnrollmentPreviewModal = ({
 
                 <div className="epm-form-field">
                   <label className="epm-field-label">
-                    <i className="bi bi-tag"></i> Scheme Type
+                    <i className="bi bi-tag"></i> Plan Type
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(membershipData.schemeType || "Value Scheme")}
+                    {valOrDash(membershipData.schemeType || "Value Plan")}
                   </div>
                 </div>
 
                 <div className="epm-form-field">
                   <label className="epm-field-label">
-                    <i className="bi bi-calendar-check"></i> Scheme Start Date
+                    <i className="bi bi-calendar-check"></i> Plan Start Date
                   </label>
                   <div className="epm-field-box">
                     {valOrDash(membershipData.startDate || new Date().toISOString().split("T")[0])}
@@ -606,7 +606,7 @@ const EnrollmentPreviewModal = ({
                 <span className="epm-section-num">3</span>
                 <div>
                   <h4 className="epm-section-title">Nominee Details</h4>
-                  <p className="epm-section-subtitle">Beneficiary information assigned to this membership scheme</p>
+                  <p className="epm-section-subtitle">Beneficiary information assigned to this membership plan</p>
                 </div>
               </div>
               <button

@@ -174,7 +174,7 @@ const PaymentSuccess = () => {
           <h2 style={{ margin: "0", fontSize: "22px", fontWeight: "bold" }}>
             Your Receipt
           </h2>
-          <p style={{ marginTop: 10 }}>Thank you for Subscribing for JPP Scheme</p>
+          <p style={{ marginTop: 10 }}>Thank you for Subscribing for JPP Plan</p>
         </div>
 
         {/* Receipt details */}
@@ -195,7 +195,7 @@ const PaymentSuccess = () => {
             <strong>Status:</strong> {membershipdata?.Status || "-"}
           </p>
           <p>
-            <strong>Scheme Name:</strong> {schemeName}         
+            <strong>Plan Name:</strong> {schemeName}         
           </p>
           <p>
             <strong>Membership No:</strong>{" "}

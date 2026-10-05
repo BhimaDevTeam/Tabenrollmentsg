@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Form, Col, Row } from "react-bootstrap";
+import { Form, Col, Row, Modal } from "react-bootstrap";
+import { toast } from "react-toastify";
 import PickDate from "../PickDate/PickDate";
 // import GuardaianDetails from "./GuardaianDetails";
 import { calculateAge } from "../PickDate/DateUtils";
@@ -73,6 +74,92 @@ const Subscriberdetails = ({
     selectedCustomerID?.email ||
     "";
   const initialMobile = cleanMobileNumber(phoneNo);
+
+  const selectedRecord = Array.isArray(selectedCustomerID) ? selectedCustomerID[0] : selectedCustomerID;
+  const isExistingCustomer = Boolean(
+    (selectedRecord && (selectedRecord.CustomerID || selectedRecord.Cust_ID || selectedRecord.Name)) ||
+    (!newSubscriber && Array.isArray(customerList) && customerList.length > 0 && selectedId !== "new" && selectedId !== "minor")
+  );
+
+  const isMobileLogin = loginMethod === "mobile" || (Boolean(phoneNo) && !phoneNo.includes("@"));
+  const isEmailLogin = loginMethod === "email" || (Boolean(phoneNo) && phoneNo.includes("@"));
+
+  const savedMobile = cleanMobileNumber(
+    selectedRecord?.MobileNo || selectedRecord?.Mobile_No || selectedRecord?.mobileNo || (isMobileLogin ? phoneNo : "")
+  );
+  const mobileLocked = Boolean(savedMobile);
+
+  const [isMobileVerified, setIsMobileVerified] = useState(
+    Boolean(savedMobile) || isMobileLogin || isExistingCustomer
+  );
+  const [isEmailVerified, setIsEmailVerified] = useState(
+    isEmailLogin || (isExistingCustomer && Boolean(selectedRecord?.EmailID || selectedRecord?.email_id || selectedRecord?.email))
+  );
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpTarget, setOtpTarget] = useState("mobile");
+  const [enteredOtp, setEnteredOtp] = useState("");
+  const [otpModalError, setOtpModalError] = useState("");
+
+  useEffect(() => {
+    if (selectedRecord && (selectedRecord.CustomerID || selectedRecord.Cust_ID || selectedRecord.Name)) {
+      if (cleanMobileNumber(selectedRecord.MobileNo || selectedRecord.Mobile_No)) {
+        setIsMobileVerified(true);
+      }
+      if (selectedRecord.EmailID || selectedRecord.email_id || selectedRecord.email) {
+        setIsEmailVerified(true);
+      }
+    }
+  }, [selectedRecord]);
+
+  const openOtpFor = (target) => {
+    if (target === "mobile") {
+      const cleanMob = String(formData.mobileNo || "").replace(/\D/g, "");
+      const reqLen = isSingapore ? 8 : 10;
+      if (!cleanMob) {
+        toast.error("Please enter a mobile number first.");
+        return;
+      }
+      if (cleanMob.length !== reqLen) {
+        toast.error(`Mobile number must be ${reqLen} digits.`);
+        return;
+      }
+      setOtpTarget("mobile");
+      setEnteredOtp("");
+      setOtpModalError("");
+      setShowOtpModal(true);
+    } else if (target === "email") {
+      const email = String(formData.email || "").trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email)) {
+        toast.error("Please enter a valid email address first.");
+        return;
+      }
+      setOtpTarget("email");
+      setEnteredOtp("");
+      setOtpModalError("");
+      setShowOtpModal(true);
+    }
+  };
+
+  const handleVerifyInsideOtp = () => {
+    if (enteredOtp.trim() !== "123456") {
+      setOtpModalError("Invalid OTP. Please enter 123456");
+      return;
+    }
+    if (otpTarget === "mobile") {
+      setIsMobileVerified(true);
+      if (clearError) clearError("mobileNo");
+      toast.success("Mobile number verified successfully!");
+    } else {
+      setIsEmailVerified(true);
+      if (clearError) clearError("email");
+      toast.success("Email verified successfully!");
+    }
+    setShowOtpModal(false);
+    setEnteredOtp("");
+    setOtpModalError("");
+  };
 
   const normalizeGender = (g) => {
     if (!g) return "";
@@ -271,24 +358,10 @@ const Subscriberdetails = ({
   }, [selectedId, selectedOption, initialEmail]);
 
   const hasExistingMajor = customerList && Array.isArray(customerList) && customerList.some((u) => isMajor(u));
-  const isEnrollingMinor = selectedId === "minor" || (hasExistingMajor && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name));
 
-  // isMinorTarget: true whenever we are enrolling a minor subscriber
-  // Must be evaluated eagerly (not dependent on formData.dob which starts empty)
-  const isMinorTarget = selectedId === "minor" || isEnrollingMinor;
-
-  const getMinMinorDob = () => {
+  const getMaxMajorDob = () => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 18);
-    d.setDate(d.getDate() + 1);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getTodayDate = () => {
-    const d = new Date();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -296,19 +369,26 @@ const Subscriberdetails = ({
   };
 
   useEffect(() => {
-    if (initialEmail && (!formData.email || isEnrollingMinor || selectedId === "minor")) {
+    if (initialEmail && !formData.email) {
       setFormData((prev) => ({ ...prev, email: initialEmail }));
     }
-  }, [initialEmail, isEnrollingMinor, selectedId]);
+  }, [initialEmail, formData.email]);
 
   useEffect(() => {
+    const isEnrollingNew = !selectedCustomerID || (!selectedCustomerID.Cust_ID && !selectedCustomerID.CustomerID && !selectedCustomerID.Name);
 
-    // enroll new minor
-    if (isEnrollingMinor && !newSubscriber && formData.dob) {
+    if (isEnrollingNew && (hasExistingMajor || selectedId === "minor")) {
+      setErrors({ dob: "Only 1 major is allowed with this mobile number. Minor enrollment is not allowed." });
+      setIsMinorDisabled(true);
+      dispatch(setIsMinorDisable(true));
+      setShowGuardianDetails(false);
+      return;
+    }
+
+    if (formData.dob) {
       const age = calculateAge(formData.dob);
-
-      if (age >= 18) {
-        setErrors({ dob: "Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment." });
+      if (age !== null && age < 18) {
+        setErrors({ dob: "Minor enrollment is not allowed. Subscriber must be 18 years or older." });
         setIsMinorDisabled(true);
         dispatch(setIsMinorDisable(true));
         setShowGuardianDetails(false);
@@ -316,24 +396,21 @@ const Subscriberdetails = ({
         setErrors({});
         setIsMinorDisabled(false);
         dispatch(setIsMinorDisable(false));
-        setShowGuardianDetails(true);
-      }
-    } else {
-      // Reset states when not enrolling a minor
-      setErrors({});
-      // Show guardian details only if age is less than 18
-      if (formData.dob) {
-        const age = calculateAge(formData.dob);
-        setShowGuardianDetails(age < 18);
-      } else {
         setShowGuardianDetails(false);
       }
+    } else {
+      setErrors({});
+      setShowGuardianDetails(false);
     }
-  }, [formData.dob, selectedId, newSubscriber, customerList, selectedCustomerID]);
+  }, [formData.dob, selectedId, newSubscriber, customerList, selectedCustomerID, hasExistingMajor]);
 
   useEffect(() => {
-    setSubscriberData(formData);
-  }, [formData]);
+    setSubscriberData({
+      ...formData,
+      isMobileVerified,
+      isEmailVerified,
+    });
+  }, [formData, isMobileVerified, isEmailVerified]);
 
   const handleDateChange = (newDate) => {
     setFormData((prevFormData) => ({ ...prevFormData, dob: newDate }));
@@ -509,17 +586,18 @@ const Subscriberdetails = ({
   };
 
   const handleEmailChange = (e) => {
-    if (initialEmail) return; // Do not allow change when email is passed from login/OTP
+    if (initialEmail && isEmailLogin) return; // Do not allow change when email is verified from login
     const { value } = e.target;
     setFormData((prevFormData) => ({
       ...prevFormData,
       email: value,
     }));
+    setIsEmailVerified(false);
     setFlag({
       ...flag,
       email: true,
     });
-    clearError("email");
+    if (clearError) clearError("email");
   };
 
   const handleEmailBlur = () => {
@@ -618,17 +696,42 @@ const Subscriberdetails = ({
     }
   };
 
-  const selectedRecord = Array.isArray(selectedCustomerID) ? selectedCustomerID[0] : selectedCustomerID;
-  const savedMobile = cleanMobileNumber(
-    selectedRecord?.MobileNo || selectedRecord?.Mobile_No || selectedRecord?.mobileNo || phoneNo
-  );
-  const mobileLocked = Boolean(savedMobile);
-
   return (
     <div className="container">
       <Form onSubmit={(e) => e.preventDefault()} onKeyDown={handleKeyDownPress}>
         <Form.Group controlId="formMobileNo" className="form-group">
-          <Form.Label className="form-label">Mobile No:</Form.Label>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+            <Form.Label className="form-label mb-0">
+              Mobile No*:{" "}
+              {isMobileVerified ? (
+                <span style={{ fontSize: "11px", color: "#28a745", fontWeight: "700", marginLeft: "6px" }}>
+                  ✓ (Verified)
+                </span>
+              ) : (
+                <span style={{ fontSize: "11px", color: "#dc3545", fontWeight: "600", marginLeft: "6px" }}>
+                  (Unverified)
+                </span>
+              )}
+            </Form.Label>
+            {!isMobileVerified && (
+              <button
+                type="button"
+                onClick={() => openOtpFor("mobile")}
+                style={{
+                  background: "#614119",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  padding: "2px 8px",
+                  cursor: "pointer",
+                }}
+              >
+                Verify with OTP
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", alignItems: "center" }}>
             <span
               style={{
@@ -658,18 +761,42 @@ const Subscriberdetails = ({
                 const val = e.target.value.replace(/\D/g, "");
                 const maxLen = isSingapore ? 8 : 10;
                 if (val.length <= maxLen) {
-                  setFormData({ ...formData, mobileNo: val });
+                  setFormData((prev) => ({ ...prev, mobileNo: val }));
+                  setIsMobileVerified(false);
+                  if (clearError) clearError("mobileNo");
                 }
               }}
-              placeholder={isSingapore ? "Enter 8-digit mobile number (optional)" : "Enter 10-digit mobile number"}
+              placeholder={isSingapore ? "Enter 8-digit mobile number" : "Enter 10-digit mobile number"}
               className="form-control"
-              disabled={mobileLocked}
-              readOnly={mobileLocked}
-              style={mobileLocked
+              disabled={mobileLocked || isMobileVerified}
+              readOnly={mobileLocked || isMobileVerified}
+              style={(mobileLocked || isMobileVerified)
                 ? { borderRadius: "0 4px 4px 0", backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" }
                 : { borderRadius: "0 4px 4px 0" }}
             />
+            {isMobileVerified && !mobileLocked && (
+              <button
+                type="button"
+                onClick={() => setIsMobileVerified(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6c757d",
+                  fontSize: "12px",
+                  marginLeft: "8px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  textDecoration: "underline",
+                }}
+                title="Change mobile number"
+              >
+                Change
+              </button>
+            )}
           </div>
+          {errorValidate.mobileNo && (
+            <Form.Text className="text-danger">{errorValidate.mobileNo}</Form.Text>
+          )}
         </Form.Group>
 
         <Form.Group controlId="formSubscriberName" className="form-group">
@@ -694,11 +821,10 @@ const Subscriberdetails = ({
         <PickDate
           dob={formData.dob}
           onDateChange={handleDateChange}
-          disabled={flag.dob ? false : (isMinorTarget ? false : formData.dob?.length)}
+          disabled={flag.dob ? false : formData.dob?.length}
           errorValidate={errorValidate}
           clearError={clearError}
-          minDate={isMinorTarget ? getMinMinorDob() : undefined}
-          maxDate={isMinorTarget ? getTodayDate() : undefined}
+          maxDate={getMaxMajorDob()}
         />
         {errorValidate.dob && (
           <Form.Text className="text-danger">{errorValidate.dob}</Form.Text>
@@ -707,11 +833,11 @@ const Subscriberdetails = ({
           <Form.Text className="text-danger">{error.dob}</Form.Text>
         )}
         {!error.dob &&
-          (selectedId === "minor" || (customerList && Array.isArray(customerList) && customerList.some(isMajor) && !newSubscriber && (!selectedCustomerID || !selectedCustomerID.Name))) &&
+          !errorValidate.dob &&
           formData.dob &&
-          calculateAge(formData.dob) >= 18 && (
+          calculateAge(formData.dob) < 18 && (
             <Form.Text className="text-danger">
-              Only 1 major is allowed with this mobile number. Age must be below 18 for minor enrollment.
+              Subscriber must be 18 years or older. Minor enrollment is not allowed.
             </Form.Text>
           )}
 
@@ -769,20 +895,72 @@ const Subscriberdetails = ({
         </Form.Group>
 
         <Form.Group controlId="formEmail" className="form-group">
-          <Form.Label className="form-label">
-            Email-ID:{(Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor") && <span style={{ fontSize: "11px", color: "#6c757d", marginLeft: "6px" }}>(Verified)</span>}
-          </Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Enter email ID"
-            className="form-control custom-placeholder"
-            value={formData.email || initialEmail || ""}
-            onChange={handleEmailChange}
-            onBlur={handleEmailBlur}
-            disabled={isminorDisabled || Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor"}
-            readOnly={Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor"}
-            style={Boolean(initialEmail) || isEnrollingMinor || selectedId === "minor" ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" } : {}}
-          />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+            <Form.Label className="form-label mb-0">
+              Email-ID*:{" "}
+              {isEmailVerified ? (
+                <span style={{ fontSize: "11px", color: "#28a745", fontWeight: "700", marginLeft: "6px" }}>
+                  ✓ (Verified)
+                </span>
+              ) : (
+                <span style={{ fontSize: "11px", color: "#dc3545", fontWeight: "600", marginLeft: "6px" }}>
+                  (Unverified)
+                </span>
+              )}
+            </Form.Label>
+            {!isEmailVerified && (
+              <button
+                type="button"
+                onClick={() => openOtpFor("email")}
+                style={{
+                  background: "#614119",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  padding: "2px 8px",
+                  cursor: "pointer",
+                }}
+              >
+                Verify with OTP
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Form.Control
+              type="email"
+              placeholder="Enter email ID"
+              className="form-control custom-placeholder"
+              value={formData.email || ""}
+              onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
+              disabled={isminorDisabled || (Boolean(initialEmail) && isEmailLogin) || isEmailVerified}
+              readOnly={(Boolean(initialEmail) && isEmailLogin) || isEmailVerified}
+              style={((Boolean(initialEmail) && isEmailLogin) || isEmailVerified)
+                ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" }
+                : {}}
+            />
+            {isEmailVerified && !(Boolean(initialEmail) && isEmailLogin) && (
+              <button
+                type="button"
+                onClick={() => setIsEmailVerified(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6c757d",
+                  fontSize: "12px",
+                  marginLeft: "8px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  textDecoration: "underline",
+                }}
+                title="Change email"
+              >
+                Change
+              </button>
+            )}
+          </div>
           {errorValidate.email && (
             <Form.Text className="text-danger">{errorValidate.email}</Form.Text>
           )}
@@ -979,7 +1157,122 @@ const Subscriberdetails = ({
           </Col>
         </Row>
       </Form>
+
+      {/* Inside OTP Verification Modal */}
+      <Modal
+        show={showOtpModal}
+        onHide={() => setShowOtpModal(false)}
+        centered
+        backdrop="static"
+      >
+        <Modal.Header closeButton style={{ borderBottom: "1px solid #dee2e6" }}>
+          <Modal.Title style={{ fontSize: "18px", fontWeight: "600", color: "#614119" }}>
+            Verify {otpTarget === "mobile" ? "Mobile Number" : "Email Address"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: "20px" }}>
+          <p style={{ fontSize: "14px", color: "#495057", marginBottom: "15px" }}>
+            An OTP has been sent to{" "}
+            <strong>
+              {otpTarget === "mobile"
+                ? `${isSingapore ? "+65" : "+91"} ${formData.mobileNo}`
+                : formData.email}
+            </strong>
+            . Please enter the OTP to verify.
+          </p>
+          <div style={{ marginBottom: "15px" }}>
+            <label style={{ fontSize: "13px", fontWeight: "600", marginBottom: "6px", display: "block" }}>
+              Enter 6-Digit OTP:
+            </label>
+            <input
+              type="text"
+              maxLength={6}
+              value={enteredOtp}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "");
+                setEnteredOtp(val);
+                if (otpModalError) setOtpModalError("");
+              }}
+              placeholder="e.g. 123456"
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                fontSize: "18px",
+                letterSpacing: "4px",
+                textAlign: "center",
+                border: otpModalError ? "1px solid #dc3545" : "1px solid #ced4da",
+                borderRadius: "6px",
+                outline: "none",
+              }}
+              autoFocus
+            />
+            {otpModalError && (
+              <div style={{ color: "#dc3545", fontSize: "12px", marginTop: "6px" }}>
+                {otpModalError}
+              </div>
+            )}
+            <small style={{ color: "#6c757d", fontSize: "12px", display: "block", marginTop: "6px" }}>
+              (Use test OTP: <strong>123456</strong>)
+            </small>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => {
+                toast.info("A new OTP (123456) has been resent.");
+                setEnteredOtp("");
+                setOtpModalError("");
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#614119",
+                fontSize: "13px",
+                textDecoration: "underline",
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              Resend OTP
+            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setShowOtpModal(false)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  border: "1px solid #ced4da",
+                  background: "#fff",
+                  color: "#495057",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyInsideOtp}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "4px",
+                  border: "none",
+                  background: "#614119",
+                  color: "#fff",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                }}
+              >
+                Confirm & Verify
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
 export default Subscriberdetails;
+

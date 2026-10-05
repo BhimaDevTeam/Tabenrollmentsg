@@ -424,9 +424,9 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
       <Form className="form">
         {/* <input type="hidden" name="branch" value={formData.branch} style={{ display: 'none' }}/> */}
         <Form.Group className="form-group" controlId="formScheme">
-          <Form.Label className="form-label">Scheme* :</Form.Label>
+          <Form.Label className="form-label">Plan* :</Form.Label>
           <Form.Select
-            aria-label="Scheme"
+            aria-label="Plan"
             className="mb-0"
             value={formData.selectedSchemeCode}
             onChange={handleSchemeChange}
@@ -434,7 +434,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
             required
           >
           <option value="" disabled hidden>
-              Select the Scheme
+              Select the Plan
             </option>
             {schemeData.map(scheme => (
               <option key={scheme.SchemeCode} value={scheme.SchemeCode}>
@@ -459,7 +459,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
                 padding: "4px 0", marginTop: "4px",
               }}
             >
-              Click here to select other scheme
+              Click here to select other plan
             </button>
           )}
           {errorValidate.selectedSchemeCode && <Form.Text className="text-danger">{errorValidate.selectedSchemeCode}</Form.Text>}
@@ -471,7 +471,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
               borderRadius: "10px", border: "1px solid #e5d8c7",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <h6 style={{ margin: 0, color: "#614119", fontWeight: "bold", fontSize: "15px" }}>Choose a Scheme</h6>
+                <h6 style={{ margin: 0, color: "#614119", fontWeight: "bold", fontSize: "15px" }}>Choose a Plan</h6>
                 <button type="button" onClick={() => setShowSchemeBrowser(false)}
                   style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#614119", lineHeight: 1 }}>×</button>
               </div>

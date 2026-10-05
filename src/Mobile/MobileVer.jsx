@@ -350,8 +350,7 @@ const MobileVer = () => {
       "";
 
     if (selectedId === "minor") {
-      dispatch(setSelectedCustomerID({}));
-      navigate(`/Mypage`, { state: { phoneNo, email: parentEmail, loginMethod, selectedId: 'minor', aadharverified: 0, selectedScheme, branch } });
+      return;
     } else if (selectedId === "new") {
       dispatch(setIsOtherCustomer(false));
       navigate(`/Mypage`, { state: { phoneNo, email: parentEmail || email, loginMethod, selectedId: 'new', aadharverified: 0, selectedScheme, branch } });
@@ -472,14 +471,7 @@ const MobileVer = () => {
 
                       </li>
                     ))}
-                  {hasExistingMajor ? (
-                    <li 
-                      style={dropdownOptionStyle} 
-                      onClick={() => { handleCustomerSelect('minor'); toggleDropdown(); }}
-                    >
-                      Enroll a minor
-                    </li>
-                  ) : (
+                  {!hasExistingMajor && (
                     <li 
                       style={dropdownOptionStyle} 
                       onClick={() => { handleCustomerSelect('new'); toggleDropdown(); }}

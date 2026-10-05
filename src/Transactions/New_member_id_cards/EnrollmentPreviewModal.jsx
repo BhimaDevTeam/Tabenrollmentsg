@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { formatCurrency } from "../../utlis/currencyUtils";
+import { formatDisplayDob } from "../PickDate/DateUtils";
 import "./EnrollmentPreviewModal.css";
 
 const EnrollmentPreviewModal = ({
@@ -342,7 +343,7 @@ const EnrollmentPreviewModal = ({
                 {subDob && (
                   <span className="epm-meta-chip">
                     <i className="bi bi-calendar3"></i>
-                    DOB: {subDob}
+                    DOB: {formatDisplayDob(subDob)}
                   </span>
                 )}
               </div>
@@ -429,7 +430,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-calendar-event"></i> Date of Birth
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(subDob)}
+                    {formatDisplayDob(subDob)}
                   </div>
                 </div>
 
@@ -554,7 +555,7 @@ const EnrollmentPreviewModal = ({
                 <div className="epm-stat-card">
                   <span className="epm-stat-label">ESTIMATED MATURITY</span>
                   <span className="epm-stat-val">
-                    {estimatedMaturity}
+                    {formatDisplayDob(estimatedMaturity)}
                   </span>
                 </div>
               </div>
@@ -583,7 +584,7 @@ const EnrollmentPreviewModal = ({
                     <i className="bi bi-calendar-check"></i> Plan Start Date
                   </label>
                   <div className="epm-field-box">
-                    {valOrDash(membershipData.startDate || new Date().toISOString().split("T")[0])}
+                    {formatDisplayDob(membershipData.startDate || new Date().toISOString().split("T")[0])}
                   </div>
                 </div>
 
@@ -713,7 +714,7 @@ const EnrollmentPreviewModal = ({
                       <i className="bi bi-calendar-event"></i> Guardian Date of Birth
                     </label>
                     <div className="epm-field-box">
-                      {valOrDash(guardDob)}
+                      {formatDisplayDob(guardDob)}
                     </div>
                   </div>
                 </div>

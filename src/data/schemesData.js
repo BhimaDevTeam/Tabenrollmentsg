@@ -47,7 +47,7 @@ const schemesData = [
     imageLink: "https://images.bhimagold.com/admin/common/images/1773403465212-Kanaka.png",
     numberOfInstallment: "11 months",
     minimumValue: "5000",
-    Bonus: "Avail flat 50% off on value addition/Making charge.",
+    Bonus: "Enjoy 0% making charges on gold and silver jewellery. For diamond or platinum selections, receive an additional bonus valued at twice your advance amount.",
     brochureLink: "https://images.bhimagold.com/admin/common/images/1773042787534-Bhima%20My%20Choice%20Brochure_10cm%20x%2016cm_English_for%20website%20upload.pdf",
     termDuration: "Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over 11 months. The minimum enrollment amount is S$5,000, with top-ups available in multiples of S$1,000.",
     benefits: "The customer’s advance is allocated in direct proportion to the prevailing weight of Gold or Silver, ensuring full material value. Jewellery purchases attract zero making charges. For Diamond or Platinum selections, the customer receives an additional benefit valued at twice your advance amount.",

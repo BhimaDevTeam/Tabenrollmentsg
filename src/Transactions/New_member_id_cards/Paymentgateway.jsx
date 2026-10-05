@@ -171,8 +171,14 @@ const DEFAULT_SCHEME_TERMS = {
 const getSchemeTerms = (schemeName) => {
   if (!schemeName) return DEFAULT_SCHEME_TERMS;
   const s = String(schemeName).toUpperCase();
+  if (s.includes("KANAKA") || s.includes("BSK") || s.includes("KAP") || s.includes("OTA")) {
+    return SCHEME_TERMS_MAP["KANAKA PLUS"];
+  }
+  if (s.includes("SHREYAS") || s.includes("BSR")) {
+    return SCHEME_TERMS_MAP["SHREYAS"];
+  }
   for (const [key, termsObj] of Object.entries(SCHEME_TERMS_MAP)) {
-    if (s.includes(key)) {
+    if (s.includes(key) || key.includes(s)) {
       return termsObj;
     }
   }

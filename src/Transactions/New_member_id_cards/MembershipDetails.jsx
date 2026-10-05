@@ -363,7 +363,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
           desc = `Start with Just ${activeSymbol} ${minVal} a month & Avail No making Charges Up to 18% on Jewellery.`;
           term = `Start with ${activeSymbol}${minVal} per month for a period of ${noOfIns} months. On maturity, the savings made by the customer is redeemable against Gold, Silver, Diamond, Platinum jewellery, or any combination giving you complete flexibility in your choice.`;
         } else if (isKanaka && isSg) {
-          term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over ${noOfIns || 11} months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, activeSymbol)}, with top-ups available in multiples of ${formatCurrency(insMult || 1000, activeSymbol)}.`;
+          term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over 11 months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, activeSymbol)}, with top-ups available in multiples of ${formatCurrency(insMult || 1000, activeSymbol)}.`;
         }
 
         desc = replaceCurrencySymbols(desc, activeSymbol);
@@ -382,7 +382,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
           benefits: benefits,
           redemption: redemption,
           minimumValue: String(minVal),
-          numberOfInstallment: `${noOfIns} months`,
+          numberOfInstallment: isKanaka ? "11 months" : `${noOfIns} months`,
           apiSchemeData: apiScheme,
         };
       }
@@ -444,8 +444,8 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
           </Form.Select>
           {formData.selectedSchemeCode && (
             <p style={{ margin: '0', fontSize: '12px', marginLeft: '5px' }} className="mt-1">
-              Min Inst Amt.: {formatCurrency(formData.minInsValue, activeSymbol)} <span style={{ marginLeft: '20px' }}>
-                Inst Multiples: {formatCurrency(formData.insMultiples, activeSymbol)}
+              {/kanaka/i.test(formData.selectedSchemeName || formData.selectedSchemeCode || "") ? "Min Advance Amt.: " : "Min Inst Amt.: "}{formatCurrency(formData.minInsValue, activeSymbol)} <span style={{ marginLeft: '20px' }}>
+                {/kanaka/i.test(formData.selectedSchemeName || formData.selectedSchemeCode || "") ? "Top-up Multiples: " : "Inst Multiples: "}{formatCurrency(formData.insMultiples, activeSymbol)}
               </span>
             </p>
           )}
@@ -509,7 +509,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <img src={browsingScheme.logoImage} alt={browsingScheme.title} style={{ maxHeight: "30px", objectFit: "contain" }} />
-                  <strong style={{ color: "#221f20", fontSize: "15px" }}>{browsingScheme.title}</strong>
+                  <strong style={{ color: "#221f20", fontSize: "15px" }}>{browsingScheme.title} {/kanaka/i.test(browsingScheme.title || browsingScheme.SchemeName || "") ? "One-Time Advance (OTA) Plan" : "Easy Monthly Advance (EMA) Plan"}</strong>
                 </div>
                 <button type="button" onClick={() => setBrowsingScheme(null)}
                   style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#614119", lineHeight: 1 }}>×</button>
@@ -587,13 +587,13 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         </Modal>
 
         <Form.Group className="form-group" controlId="formInstallmentAmount" id="#installment_amount" >
-          <Form.Label className="form-label">Installment Amount*:</Form.Label>
+          <Form.Label className="form-label">{/kanaka/i.test(formData.selectedSchemeName || formData.selectedSchemeCode || "") ? "Advance Amount (OTA)*:" : "Installment Amount*:"}</Form.Label>
           <Form.Control
             type="text"
             value={formData.installmentAmount}
             onChange={handleInstallmentAmountChange}
              className="form-control custom-placeholder"
-             placeholder="Enter the installment amount"
+             placeholder={/kanaka/i.test(formData.selectedSchemeName || formData.selectedSchemeCode || "") ? "Enter advance amount" : "Enter the installment amount"}
             inputMode="numeric"
             pattern="[0-9]*"
             disabled={isdraftid_gen}

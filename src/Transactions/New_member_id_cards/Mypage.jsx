@@ -264,7 +264,9 @@ const Mypage = () => {
       const cleanBranch = currentBranchCode || getCleanBranch(branch || membershipData.branch || localStorage.getItem("decodedBranch"));
       const today = new Date();
       const Start_Date = today.toISOString().split('T')[0];
-      const Maturity_Date = calculateMaturityDate(Start_Date, noOfInstallments);
+      const isKanaka = /kanaka/i.test(membershipData.selectedSchemeName || membershipData.selectedSchemeCode || "");
+      const tenureMonths = isKanaka ? 11 : (noOfInstallments || 11);
+      const Maturity_Date = calculateMaturityDate(Start_Date, tenureMonths);
 
       // Check web.config flag: EnableSignatureEmail (0 = skip email, 1 = send). Default: enabled.
       const isSignatureEmailEnabled = (localStorage.getItem("EnableSignatureEmail") || window.APP_CONFIG?.EnableSignatureEmail || "1") === "1";

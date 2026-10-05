@@ -85,8 +85,10 @@ const mapApiSchemesToCards = (apiSchemes, isSg = false) => {
         term = `Start with ${sym}${minVal || (isSg ? 100 : 1000)} per month for a period of ${noOfIns} months. On maturity, the savings made by the customer is redeemable against Gold, Silver, Diamond, Platinum jewellery, or any combination giving you complete flexibility in your choice.`;
       } else if (/kanaka/i.test(match.title || apiScheme.SchemeName || "") && isSg) {
         const insMult = apiScheme.InsMultiples != null ? apiScheme.InsMultiples : 1000;
-        term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over ${noOfIns} months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, "S$")}, with top-ups available in multiples of ${formatCurrency(insMult, "S$")}.`;
+        term = `Our Kanaka Plus Plan allows customers to pay upfront at enrollment and watch their money grow over 11 months. The minimum enrollment amount is ${formatCurrency(minVal || 5000, "S$")}, with top-ups available in multiples of ${formatCurrency(insMult, "S$")}.`;
       }
+
+      const isKanakaScheme = /kanaka/i.test(match.title || apiScheme.SchemeName || "");
 
       card = {
         ...match,
@@ -97,7 +99,7 @@ const mapApiSchemesToCards = (apiSchemes, isSg = false) => {
         description: desc,
         termDuration: term,
         minimumValue: apiScheme.MinInsValue != null ? String(apiScheme.MinInsValue) : match.minimumValue,
-        numberOfInstallment: apiScheme.NoOfIns != null ? `${apiScheme.NoOfIns} month${Number(apiScheme.NoOfIns) > 1 ? "s" : ""}` : match.numberOfInstallment,
+        numberOfInstallment: isKanakaScheme ? "11 months" : (apiScheme.NoOfIns != null ? `${apiScheme.NoOfIns} month${Number(apiScheme.NoOfIns) > 1 ? "s" : ""}` : match.numberOfInstallment),
         apiSchemeData: apiScheme,
       };
     } else {
@@ -1293,7 +1295,7 @@ const Mobile = () => {
                   margin: 0,
                   flex: 1,
                 }}>
-                  {viewingScheme.title} Easy Monthly Advance (EMA) Plan
+                  {viewingScheme.title} {/kanaka/i.test(viewingScheme.title || viewingScheme.SchemeName || "") ? "One-Time Advance (OTA) Plan" : "Easy Monthly Advance (EMA) Plan"}
                 </h3>
                 <button
                   onClick={() => setViewingScheme(null)}

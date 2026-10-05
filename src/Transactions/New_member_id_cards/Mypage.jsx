@@ -1375,6 +1375,13 @@ const Mypage = () => {
         setExpanded("subscriber-header");
         return;
       }
+      const emailConflictMsg = await checkEmailBinding(subscriberData.email, subscriberData.mobileNo);
+      if (emailConflictMsg) {
+        toast.error(emailConflictMsg);
+        seterrorValidate((prev) => ({ ...prev, email: emailConflictMsg }));
+        setExpanded("subscriber-header");
+        return;
+      }
 
       setIsSaving(true);
       setFlag(true);
@@ -1788,7 +1795,7 @@ const Mypage = () => {
       const boundMobile = String(record.MobileNo || record.mobileNo || record.Mobile_No || "").trim();
       const boundDigits = digitsOnly(boundMobile);
       if (boundDigits && !mobilesMatch(boundDigits, formMobile)) {
-        message = `Number already exists with ${maskMobile(boundDigits)}`;
+        message = `This Gmail already mapped to some other number ${maskMobile(boundDigits)}`;
       }
     }
 

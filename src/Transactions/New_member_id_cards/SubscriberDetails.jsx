@@ -125,7 +125,7 @@ const Subscriberdetails = ({
     }
   }, [selectedRecord]);
 
-  const openOtpFor = (target) => {
+  const openOtpFor = async (target) => {
     if (target === "mobile") {
       const cleanMob = String(formData.mobileNo || "").replace(/\D/g, "");
       const reqLen = isSingapore ? 8 : 10;
@@ -135,6 +135,10 @@ const Subscriberdetails = ({
       }
       if (cleanMob.length !== reqLen) {
         toast.error(`Mobile number must be ${reqLen} digits.`);
+        return;
+      }
+      if (errorValidate?.mobileNo) {
+        toast.error(errorValidate.mobileNo);
         return;
       }
       setOtpTarget("mobile");
@@ -147,6 +151,17 @@ const Subscriberdetails = ({
       if (!email || !emailRegex.test(email)) {
         toast.error("Please enter a valid email address first.");
         return;
+      }
+      if (errorValidate?.email) {
+        toast.error(errorValidate.email);
+        return;
+      }
+      if (onEmailLeave) {
+        const bindErr = await onEmailLeave(email, formData.mobileNo || "");
+        if (bindErr) {
+          toast.error(bindErr);
+          return;
+        }
       }
       setOtpTarget("email");
       setEnteredOtp("");

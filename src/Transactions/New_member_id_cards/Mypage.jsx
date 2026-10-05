@@ -1365,6 +1365,13 @@ const Mypage = () => {
         setExpanded("subscriber-header");
         return;
       }
+      const mobConflictMsg = await checkMobileBinding(subscriberData.mobileNo, subscriberData.email);
+      if (mobConflictMsg) {
+        toast.error(mobConflictMsg);
+        seterrorValidate((prev) => ({ ...prev, mobileNo: mobConflictMsg }));
+        setExpanded("subscriber-header");
+        return;
+      }
       if (!subscriberData.email) {
         toast.error("Email ID is required.");
         setExpanded("subscriber-header");
@@ -1803,6 +1810,78 @@ const Mypage = () => {
     return message;
   };
 
+  const maskEmail = (email) => {
+    const str = String(email || "").trim();
+    if (!str.includes("@")) return str;
+    const [name, domain] = str.split("@");
+    if (name.length <= 2) {
+      return `${name[0]}*@${domain}`;
+    }
+    const first2 = name.slice(0, 2);
+    const last1 = name.slice(-1);
+    return `${first2}****${last1}@${domain}`;
+  };
+
+  const mobileBindCache = useRef({ mobile: "", message: null });
+
+  const checkMobileBinding = async (mobile, emailOverride) => {
+    const cleanMob = digitsOnly(mobile);
+    const isSingapore = selectedCountry === "Singapore";
+    const reqLen = isSingapore ? 8 : 10;
+    if (!cleanMob || cleanMob.length !== reqLen || !isSingapore) return "";
+
+    const formEmail = String(
+      emailOverride != null
+        ? emailOverride
+        : (subscriberData.email || (phone && String(phone).includes("@") ? phone : ""))
+    ).trim().toLowerCase();
+
+    const cacheKey = `${cleanMob}|${formEmail}`;
+    if (mobileBindCache.current.mobile === cacheKey && mobileBindCache.current.message !== null) {
+      return mobileBindCache.current.message;
+    }
+
+    let crmList = null;
+    try {
+      const res = await fetch(`${SG_SEARCH_CUSTOMER_API}/${encodeURIComponent(cleanMob)}`);
+      if (res.ok) crmList = await res.json();
+    } catch (err) {
+      try {
+        const proxyRes = await fetch(`/api/crm/api_db.js/api/Searchcustomer/${encodeURIComponent(cleanMob)}`);
+        if (proxyRes.ok) crmList = await proxyRes.json();
+      } catch (proxyErr) {
+        console.warn("Mobile binding lookup failed:", proxyErr);
+      }
+    }
+
+    const record = Array.isArray(crmList) ? crmList.find((row) => {
+      const rowMobile = digitsOnly(row?.MobileNo || row?.Mobile_No || row?.mobileNo || "");
+      return !rowMobile || mobilesMatch(rowMobile, cleanMob);
+    }) : null;
+
+    let message = "";
+    if (record) {
+      const boundEmail = String(record.EmailID || record.email_id || record.email || "").trim().toLowerCase();
+      if (boundEmail && boundEmail.includes("@") && formEmail && formEmail.includes("@") && boundEmail !== formEmail) {
+        message = `This mobile number already mapped to some other email ${maskEmail(boundEmail)}`;
+      }
+    }
+
+    mobileBindCache.current = { mobile: cacheKey, message };
+    return message;
+  };
+
+  const handleMobileLeave = async (mobile, email) => {
+    const bindMsg = await checkMobileBinding(mobile, email);
+    if (bindMsg) {
+      toast.error(bindMsg);
+      seterrorValidate((prev) => ({ ...prev, mobileNo: bindMsg }));
+      return bindMsg;
+    }
+    clearError("mobileNo");
+    return "";
+  };
+
   const handleEmailLeave = async (email, mobile) => {
     const bindMsg = await checkEmailBinding(email, mobile);
     if (bindMsg) {
@@ -1817,7 +1896,14 @@ const Mypage = () => {
   const On_click_subsriber_validation = async () => {
     const errors = validateSubscriber();
     if (Object.keys(errors).length === 0) {
-      const bindMsg = await checkEmailBinding(subscriberData.email);
+      const mobConflictMsg = await checkMobileBinding(subscriberData.mobileNo, subscriberData.email);
+      if (mobConflictMsg) {
+        toast.error(mobConflictMsg);
+        seterrorValidate((prev) => ({ ...prev, mobileNo: mobConflictMsg }));
+        setExpanded("subscriber-header");
+        return true;
+      }
+      const bindMsg = await checkEmailBinding(subscriberData.email, subscriberData.mobileNo);
       if (bindMsg) {
         toast.error(bindMsg);
         seterrorValidate((prev) => ({ ...prev, email: bindMsg }));
@@ -2260,6 +2346,7 @@ const Mypage = () => {
               loginMethod={loginMethod || (effectiveEmail ? "email" : "mobile")}
               clearError={clearError}
               onEmailLeave={handleEmailLeave}
+              onMobileLeave={handleMobileLeave}
               showGuardianDetails={showGuardianDetails}
               setShowGuardianDetails={setShowGuardianDetails}
               validationdisable={IsDisabledCheck}

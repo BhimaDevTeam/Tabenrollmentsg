@@ -25,6 +25,7 @@ const Subscriberdetails = ({
   flag,
   setFlag,
   onEmailLeave,
+  onMobileLeave,
 }) => {
   const { customer: customerList, selectedCustomerID, isOtherCustomer, selectedCountry } = useSelector(
     (state) => state.customer || {}
@@ -140,6 +141,13 @@ const Subscriberdetails = ({
       if (errorValidate?.mobileNo) {
         toast.error(errorValidate.mobileNo);
         return;
+      }
+      if (onMobileLeave) {
+        const bindErr = await onMobileLeave(cleanMob, formData.email || savedEmail || "");
+        if (bindErr) {
+          toast.error(bindErr);
+          return;
+        }
       }
       setOtpTarget("mobile");
       setEnteredOtp("");
@@ -633,6 +641,13 @@ const Subscriberdetails = ({
     const email = (formData.email || initialEmail || "").trim();
     if (onEmailLeave) onEmailLeave(email, formData.mobileNo || "");
   };
+
+  const handleMobileBlur = () => {
+    const mob = cleanMobileNumber(formData.mobileNo || savedMobile || "");
+    if (onMobileLeave && !mobileLocked) {
+      onMobileLeave(mob, formData.email || savedEmail || "");
+    }
+  };
   const [oldAddressData, setOldAddressData] = useState(null); // State to store old address data
   const [isNewAddressMode, setIsNewAddressMode] = useState(false);
   const handleAddressEdit = (e) => {
@@ -796,6 +811,7 @@ const Subscriberdetails = ({
                 }
               }}
               placeholder={isSingapore ? "Enter 8-digit mobile number" : "Enter 10-digit mobile number"}
+              onBlur={handleMobileBlur}
               className="form-control"
               disabled={mobileLocked || isMobileVerified}
               readOnly={mobileLocked || isMobileVerified}

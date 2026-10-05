@@ -106,20 +106,29 @@ const Header = ({ branch }) => {
     // For Singapore, gold and silver rates are always retrieved using branch "LI"
     const targetBranch = isSingapore ? "LI" : branchCode;
 
-    const baseUrl = isSingapore ? "https://suvarnagopura.com/VrudhiPortalAPISG" : "https://vrudhi.bhima.info/VrudhiPortalAPI";
-    const primaryUrl = `${baseUrl}/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
-    const fallbackUrl = `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
+    // For Singapore, gold and silver rates are fetched from DraftEnrollmentApi (https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=LI)
+    // For India, use VrudhiPortalAPI with fallback to DraftEnrollmentApi
+    const primaryUrl = isSingapore
+      ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${targetBranch.toUpperCase()}`
+      : `https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
+    const fallbackUrl = isSingapore
+      ? `https://vrudhi.bhima.info/DraftEnrollmentApi/api/goldrate?branch=${targetBranch.toUpperCase()}`
+      : `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
 
     try {
       let data = null;
       try {
-        const response = await fetch(primaryUrl, {
-          headers: {
-            Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
-          },
-        });
+        const fetchOptions = isSingapore
+          ? {}
+          : {
+              headers: {
+                Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
+              },
+            };
+        const response = await fetch(primaryUrl, fetchOptions);
         if (response.ok) {
-          data = await response.json();
+          const resObj = await response.json();
+          data = Array.isArray(resObj) ? resObj : (resObj.data || resObj.value || null);
         }
       } catch (err) {
         console.warn("Primary goldrate API failed, trying fallback:", err);
@@ -129,12 +138,13 @@ const Header = ({ branch }) => {
         const response = await fetch(fallbackUrl);
         if (response.ok) {
           const resObj = await response.json();
-          data = resObj.data || resObj;
+          data = Array.isArray(resObj) ? resObj : (resObj.data || resObj.value || null);
         }
       }
 
       if (Array.isArray(data) && data.length > 0) {
         let silver = null;
+        let silverCoin = null;
         let gold22 = null;
         let gold24 = null;
         let gold18 = null;
@@ -142,13 +152,15 @@ const Header = ({ branch }) => {
         data.forEach((item) => {
           const id = Number(item.CommodityTypeID);
           const rate = Number(item.Rate);
-          if ((id === 2 || id === 7) && !silver) silver = rate;
+          if (id === 2 && !silver) silver = rate;
+          if (id === 7 && !silverCoin) silverCoin = rate;
           if ((id === 1 || id === 5) && !gold22) gold22 = rate;
           if ((id === 3 || id === 8) && !gold24) gold24 = rate;
           if (id === 6 && !gold18) gold18 = rate;
         });
 
-        setRates({ silver, gold22, gold24, gold18 });
+        const finalSilver = silver ?? silverCoin;
+        setRates({ silver: finalSilver, gold22, gold24, gold18 });
       }
     } catch (err) {
       console.warn("Failed to fetch gold rates:", err);

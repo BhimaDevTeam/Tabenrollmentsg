@@ -185,7 +185,11 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         return;
         }
 
-        const response = await fetch(`${COLLECTION_API}/goldrate?branch=${branch}`);
+        const isSg = isSingapore || branch === "LI" || branch === "LN";
+        const rateUrl = isSg
+          ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${branch}`
+          : `${COLLECTION_API}/goldrate?branch=${branch}`;
+        const response = await fetch(rateUrl);
         if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
         const responseData = await response.json();
 

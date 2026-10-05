@@ -89,11 +89,24 @@ const Subscriberdetails = ({
   );
   const mobileLocked = Boolean(savedMobile);
 
+  const savedEmail = (
+    selectedRecord?.EmailID ||
+    selectedRecord?.email_id ||
+    selectedRecord?.email ||
+    majorSubscriber?.EmailID ||
+    majorSubscriber?.email_id ||
+    majorSubscriber?.email ||
+    (isExistingCustomer ? initialEmail : "") ||
+    (isEmailLogin ? (phoneNo && phoneNo.includes("@") ? phoneNo : passedEmail) : "") ||
+    ""
+  ).trim();
+  const emailLocked = Boolean(savedEmail);
+
   const [isMobileVerified, setIsMobileVerified] = useState(
     Boolean(savedMobile) || isMobileLogin || isExistingCustomer
   );
   const [isEmailVerified, setIsEmailVerified] = useState(
-    isEmailLogin || (isExistingCustomer && Boolean(selectedRecord?.EmailID || selectedRecord?.email_id || selectedRecord?.email))
+    emailLocked || isEmailLogin || (isExistingCustomer && Boolean(selectedRecord?.EmailID || selectedRecord?.email_id || selectedRecord?.email))
   );
 
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -369,10 +382,11 @@ const Subscriberdetails = ({
   };
 
   useEffect(() => {
-    if (initialEmail && !formData.email) {
-      setFormData((prev) => ({ ...prev, email: initialEmail }));
+    const targetEmail = savedEmail || initialEmail;
+    if (targetEmail && !formData.email) {
+      setFormData((prev) => ({ ...prev, email: targetEmail }));
     }
-  }, [initialEmail, formData.email]);
+  }, [savedEmail, initialEmail, formData.email]);
 
   useEffect(() => {
     const isEnrollingNew = !selectedCustomerID || (!selectedCustomerID.Cust_ID && !selectedCustomerID.CustomerID && !selectedCustomerID.Name);
@@ -586,7 +600,7 @@ const Subscriberdetails = ({
   };
 
   const handleEmailChange = (e) => {
-    if (initialEmail && isEmailLogin) return; // Do not allow change when email is verified from login
+    if (emailLocked) return; // Do not allow change when email already exists on record/login
     const { value } = e.target;
     setFormData((prevFormData) => ({
       ...prevFormData,
@@ -932,16 +946,16 @@ const Subscriberdetails = ({
               type="email"
               placeholder="Enter email ID"
               className="form-control custom-placeholder"
-              value={formData.email || ""}
+              value={formData.email || savedEmail || ""}
               onChange={handleEmailChange}
               onBlur={handleEmailBlur}
-              disabled={isminorDisabled || (Boolean(initialEmail) && isEmailLogin) || isEmailVerified}
-              readOnly={(Boolean(initialEmail) && isEmailLogin) || isEmailVerified}
-              style={((Boolean(initialEmail) && isEmailLogin) || isEmailVerified)
+              disabled={isminorDisabled || emailLocked || isEmailVerified}
+              readOnly={emailLocked || isEmailVerified}
+              style={(emailLocked || isEmailVerified)
                 ? { backgroundColor: "#e9ecef", cursor: "not-allowed", color: "#495057" }
                 : {}}
             />
-            {isEmailVerified && !(Boolean(initialEmail) && isEmailLogin) && (
+            {isEmailVerified && !emailLocked && (
               <button
                 type="button"
                 onClick={() => setIsEmailVerified(false)}

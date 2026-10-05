@@ -57,14 +57,57 @@ const SCHEME_TERMS_MAP = {
     ]
   },
   "KANAKA PLUS": {
-    title: "BHIMA KANAKA PLUS SCHEME - TERMS & CONDITIONS",
+    title: "TERMS & CONDITIONS – KANAKA PLUS ADVANCE PLAN",
     clauses: [
-      "1. Dual Benefit Plan: Combines rate lock option with special maturity bonus discounts.",
-      "2. Duration: 11 monthly installments over a 330-day period.",
-      "3. Maturity Privilege: Entitles subscriber to special making charge discounts on 22K & 18K Gold Ornaments.",
-      "4. Cash Refund Restriction: Cash refunds are prohibited under any conditions.",
-      "5. Mandatory eKYC: Aadhaar / PAN eKYC verification must be completed prior to scheme enrollment.",
-      "6. Taxes: Statutory GST at billing is applicable."
+      "1. Duration of the plan: The advance plan duration is 11 months from the date of enrolment.",
+      "2. Eligibility & Enrolment: Members can enrol in the plan by making a One-Time Advance (OTA) payment with a minimum of S$ 5,000 (Five Thousand Singapore Dollars). Upon completion of 11 months, members may redeem the OTA and purchase Gold, Diamond, Silver, or Platinum jewellery.",
+      "• The advance amount is non-transferable and can be utilized only against the purchase of: 22 KT Gold Coins, Silver articles & Coins, Gold Jewellery, Diamond Jewellery, Platinum Jewellery.",
+      "• The (OTA) advance amount will be converted into 22KT Gold weight or Silver weight at the prevailing market rate on the date of payment received confirmation at our end, and the corresponding weight will be credited to the customer’s account.",
+      "• No interest is applicable for the (OTA) advance payments under any circumstances.",
+      "3. Identification & Membership Card: Valid identification documents must be submitted at time of plan enrolment. A nominee must be appointed and mentioned in the plan application. Address changes or loss of membership card must be reported immediately with updated Identification at our Singapore branch.",
+      "4. Payment Modes & Limitations: The advance amount must be paid only through the following modes: Pay Now, Pay Lah, Debit Card, Credit Card, NETS. Cash payments are strictly not permitted • Submission of a valid NRIC card copy is mandatory.",
+      "5. At the Time of Purchase: During the plan redemption purchase, members must be present in our showroom with their Membership Card and valid ID proof. GST and all applicable Government levies must be paid at the time of purchase/delivery. Members may purchase any of the following, based on their total advance value: 22KT Gold Ornaments, 22KT Gold Coins, Silver Coins, Silver Articles, Exclusive Diamond Jewellery, Platinum Jewellery or any combination of the above.",
+      "6. Advance plan Closure Benefits – Gold & Silver: Benefits are determined by the completion period and duration. For instance, if the plan concludes between 184–213 days (6 months), the member is entitled to 50% of the total VA for the total accumulated weight.",
+      "7. Advance plan Closure Benefits – Diamond & Platinum: Benefits for Diamond and Platinum jewellery shall be calculated based on the total OTA paid divided into equivalent units of 11 months. (If the enrolment (OTA) advance amount is S$ 5,000: S$5,000/11x2).",
+      "• Important Notes: Diamond carat or Platinum weight is not credited. Only the value of the advance amount is considered for benefit calculation. Benefits are calculated based on the total OTA paid divided into equivalent units of 11 months. Full benefit of the plan will be credited only upon completion of 334 days or more.",
+      "• Early Closure – Benefit Applicability: In case of early closure, benefits for Diamond & Platinum jewellery will be calculated based on the month-wise slab structure applicable under the advance plan.",
+      "  - A) Closure within 2 months (1–62 days): No benefits applicable • Only the advance amount paid will be adjusted against the jewellery purchase • All making charges and applicable costs must be paid in full.",
+      "  - B) Closure at completion of 8 months (244–273 days) Gold / Silver Jewellery: 70% benefit applicable • 30% of the making charges must be paid by the customer (Example: Total making charges = S$ 1200, Benefit = S$ 840, Customer payable = S$360). Diamond / Platinum Jewellery: Benefit = Advance amount x (2/11) • At completion of 8 months, 70% of the 2-month benefit is applicable (Example: Total Advance = S$5,000, Full 2-month Benefit = S$5,000/11x2, Applicable Benefit at 8 months (70%) = S$ 636.36).",
+      "8. General Conditions:",
+      "• Thrilok Gold and Diamonds Pte Limited reserves the right to amend, modify, or take final decisions regarding this plan.",
+      "• This advance plan cannot be combined with any other promotional offer or gold rate promotion.",
+      "• New collections are excluded for 3 months from launch • This advance plan is subject to the jurisdiction of Singapore.",
+      "• Members must comply with all applicable Government rules, regulations, and statutory requirements.",
+      "• This advance plan can be redeemed at Thrilok Gold and Diamonds Pte Limited Singapore showroom.",
+      "9. Buying Gold or Silver: Your advance is converted into the actual weight of gold or silver. You also enjoy 0% making charges on jewellery.",
+      "10. Buying Diamond or Platinum: When you choose Diamond or Platinum jewellery, you get additional value equivalent to 2 units of your total advance amount."
+    ]
+  },
+  KANAKA_PLUS: {
+    title: "TERMS & CONDITIONS – KANAKA PLUS ADVANCE PLAN",
+    clauses: [
+      "1. Duration of the plan: The advance plan duration is 11 months from the date of enrolment.",
+      "2. Eligibility & Enrolment: Members can enrol in the plan by making a One-Time Advance (OTA) payment with a minimum of S$ 5,000 (Five Thousand Singapore Dollars). Upon completion of 11 months, members may redeem the OTA and purchase Gold, Diamond, Silver, or Platinum jewellery.",
+      "• The advance amount is non-transferable and can be utilized only against the purchase of: 22 KT Gold Coins, Silver articles & Coins, Gold Jewellery, Diamond Jewellery, Platinum Jewellery.",
+      "• The (OTA) advance amount will be converted into 22KT Gold weight or Silver weight at the prevailing market rate on the date of payment received confirmation at our end, and the corresponding weight will be credited to the customer’s account.",
+      "• No interest is applicable for the (OTA) advance payments under any circumstances.",
+      "3. Identification & Membership Card: Valid identification documents must be submitted at time of plan enrolment. A nominee must be appointed and mentioned in the plan application. Address changes or loss of membership card must be reported immediately with updated Identification at our Singapore branch.",
+      "4. Payment Modes & Limitations: The advance amount must be paid only through the following modes: Pay Now, Pay Lah, Debit Card, Credit Card, NETS. Cash payments are strictly not permitted • Submission of a valid NRIC card copy is mandatory.",
+      "5. At the Time of Purchase: During the plan redemption purchase, members must be present in our showroom with their Membership Card and valid ID proof. GST and all applicable Government levies must be paid at the time of purchase/delivery. Members may purchase any of the following, based on their total advance value: 22KT Gold Ornaments, 22KT Gold Coins, Silver Coins, Silver Articles, Exclusive Diamond Jewellery, Platinum Jewellery or any combination of the above.",
+      "6. Advance plan Closure Benefits – Gold & Silver: Benefits are determined by the completion period and duration. For instance, if the plan concludes between 184–213 days (6 months), the member is entitled to 50% of the total VA for the total accumulated weight.",
+      "7. Advance plan Closure Benefits – Diamond & Platinum: Benefits for Diamond and Platinum jewellery shall be calculated based on the total OTA paid divided into equivalent units of 11 months. (If the enrolment (OTA) advance amount is S$ 5,000: S$5,000/11x2).",
+      "• Important Notes: Diamond carat or Platinum weight is not credited. Only the value of the advance amount is considered for benefit calculation. Benefits are calculated based on the total OTA paid divided into equivalent units of 11 months. Full benefit of the plan will be credited only upon completion of 334 days or more.",
+      "• Early Closure – Benefit Applicability: In case of early closure, benefits for Diamond & Platinum jewellery will be calculated based on the month-wise slab structure applicable under the advance plan.",
+      "  - A) Closure within 2 months (1–62 days): No benefits applicable • Only the advance amount paid will be adjusted against the jewellery purchase • All making charges and applicable costs must be paid in full.",
+      "  - B) Closure at completion of 8 months (244–273 days) Gold / Silver Jewellery: 70% benefit applicable • 30% of the making charges must be paid by the customer (Example: Total making charges = S$ 1200, Benefit = S$ 840, Customer payable = S$360). Diamond / Platinum Jewellery: Benefit = Advance amount x (2/11) • At completion of 8 months, 70% of the 2-month benefit is applicable (Example: Total Advance = S$5,000, Full 2-month Benefit = S$5,000/11x2, Applicable Benefit at 8 months (70%) = S$ 636.36).",
+      "8. General Conditions:",
+      "• Thrilok Gold and Diamonds Pte Limited reserves the right to amend, modify, or take final decisions regarding this plan.",
+      "• This advance plan cannot be combined with any other promotional offer or gold rate promotion.",
+      "• New collections are excluded for 3 months from launch • This advance plan is subject to the jurisdiction of Singapore.",
+      "• Members must comply with all applicable Government rules, regulations, and statutory requirements.",
+      "• This advance plan can be redeemed at Thrilok Gold and Diamonds Pte Limited Singapore showroom.",
+      "9. Buying Gold or Silver: Your advance is converted into the actual weight of gold or silver. You also enjoy 0% making charges on jewellery.",
+      "10. Buying Diamond or Platinum: When you choose Diamond or Platinum jewellery, you get additional value equivalent to 2 units of your total advance amount."
     ]
   },
   SWARNADHARA: {
@@ -78,13 +121,33 @@ const SCHEME_TERMS_MAP = {
     ]
   },
   SHREYAS: {
-    title: "BHIMA SHREYAS SCHEME - TERMS & CONDITIONS",
+    title: "TERMS & CONDITIONS – SHREYAS ADVANCE PLAN",
     clauses: [
-      "1. Premium Privilege Plan: Designed for high-value purchases with maximum VA discounts.",
-      "2. Tenure: 11 monthly installments.",
-      "3. Redemption: Exclusive redemption against gold & diamond jewelry.",
-      "4. No Cash Refund: Non-cashable under any regulatory norms.",
-      "5. KYC Mandatory: Customer identity verification is mandatory."
+      "1. Duration: The advance plan is operational for a duration of 11 months from the date of enrolment.",
+      "2. Eligibility & Enrolment: Membership begins with an Easy Monthly Advance (EMA) starting from minimum of S$100. Members of this plan will have the flexibility to redeem the accumulated advance to purchase Gold (22KT coin & Jewellery), Silver coin & articles, Diamond, or Platinum Jewellery.",
+      "3. Monthly Payments:",
+      "• EMA must be equal and consecutive for all 11 months.",
+      "• Payments cannot extend beyond the 11th month from the date of enrolment.",
+      "• EMA is non-transferable and valid only against the purchase of Gold (22KT coin & Jewellery), Diamond, Platinum jewellery, Silver articles & Silver coins.",
+      "• EMA is converted into 22KT Gold/Silver weight as per the market rate on the date of payment.",
+      "• EMA cannot be transferred to another plan or person.",
+      "• Payments will have to be made on or before the due date. However only one EMA payment is accepted in a calendar month.",
+      "• No interest is applicable for the advance payments under any circumstances.",
+      "4. Identification & Membership Card: Valid identification documents must be submitted at time of plan enrolment. A nominee must be appointed and mentioned in the plan application. Address changes or loss of membership card must be reported immediately with updated Identification at our Singapore branch.",
+      "5. Payment Limitations: Monthly advances above S$ 1800 must be paid via Debit/Credit Card, PAY NOW, PAY LAH, NETS. Cash will not be permitted as per Govt. norms. Jewellery purchase cannot be made using multiple plan accounts if combined cash advances exceeding S$20,000.",
+      "6. Purchase Conditions: During the plan redemption purchase, members must be present in our showroom with their Membership Card and valid ID proof. GST and other applicable government levies if any must be paid at the time of purchase. Eligible purchases include 22KT Gold Ornaments, 22KT Gold Coins, Silver Coins/Articles, Diamond Jewellery, Platinum Jewellery, or a combination thereof.",
+      "7. Advance plan Closure Benefits – Gold & Silver: Benefits are determined by the completion period and duration. For instance, if the plan concludes between 184–213 days (6 months), the member is entitled to a 50% Benefit on making charges of up to 18% VA for the total accumulated weight.",
+      "• Note: VA benefit percentage range applies only up to 18% of the total Value Addition. Any excess VA over and above 18% is payable by the customer.",
+      "• If multiple products are being purchased, making charges will be calculated according to each individual product independently.",
+      "• The weight & value of the complementary coins will be forfeited if the customer fails to complete all 11 months.",
+      "8. Advance plan Closure Benefits – Diamond & Platinum: Members may purchase Diamond/Platinum jewellery with the benefit of two months equivalent EMA (ranging 334+ days of completion). Early closure benefits will apply as per day-wise slabs proportionately. Example: At the completion of 8th month ranging between (244–273 days), if it is a S$ 200 enrolment the same shall yield S$ 280 as benefit. Up to the 3rd month ranging between (1–93 days), no benefits shall apply; only the advance paid amount will be credited if redeemed.",
+      "9. General Conditions:",
+      "• Thrilok Gold and Diamonds Pte Limited reserves all rights and final decisions.",
+      "• This advance plan cannot be combined with other offers or gold rate promotions.",
+      "• New collections are excluded for three months from launch.",
+      "• The advance plan falls under the jurisdiction of Singapore.",
+      "• This advance plan can be redeemed at Thrilok Gold and Diamonds Pte Limited Singapore showroom.",
+      "• Members must comply with all applicable government regulations."
     ]
   }
 };

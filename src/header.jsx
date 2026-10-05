@@ -159,7 +159,8 @@ const Header = ({ branch }) => {
           if (id === 6 && !gold18) gold18 = rate;
         });
 
-        const finalSilver = silver ?? silverCoin;
+        // Prioritize CommodityTypeID 7 (Silver Coin: 3.5) as requested, fallback to CommodityTypeID 2 (Silver: 4)
+        const finalSilver = silverCoin ?? silver;
         setRates({ silver: finalSilver, gold22, gold24, gold18 });
       }
     } catch (err) {

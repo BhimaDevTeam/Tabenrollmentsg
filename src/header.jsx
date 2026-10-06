@@ -103,28 +103,28 @@ const Header = ({ branch }) => {
       ))
       || localStorage.getItem("selectedCountry") === "Singapore";
 
-    // For Singapore, gold and silver rates are always retrieved using branch "LI"
-    const targetBranch = isSingapore ? "LI" : branchCode;
+    // For Singapore, LN maps to LI; BGSG keeps BGSG; LI keeps LI
+    const targetBranch = isSingapore
+      ? ((branchCode || "").toUpperCase().trim() === "LN" ? "LI" : ((branchCode || "").toUpperCase().trim() || "LI"))
+      : branchCode;
 
-    // For Singapore, gold and silver rates are fetched from DraftEnrollmentApi (https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=LI)
+    // For Singapore, gold and silver rates are fetched from VrudhiPortalAPISG by branch
     // For India, use VrudhiPortalAPI with fallback to DraftEnrollmentApi
     const primaryUrl = isSingapore
-      ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${targetBranch.toUpperCase()}`
+      ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
       : `https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
     const fallbackUrl = isSingapore
-      ? `https://vrudhi.bhima.info/DraftEnrollmentApi/api/goldrate?branch=${targetBranch.toUpperCase()}`
+      ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${targetBranch}`
       : `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
 
     try {
       let data = null;
       try {
-        const fetchOptions = isSingapore
-          ? {}
-          : {
-              headers: {
-                Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
-              },
-            };
+        const fetchOptions = {
+          headers: {
+            Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
+          },
+        };
         const response = await fetch(primaryUrl, fetchOptions);
         if (response.ok) {
           const resObj = await response.json();
@@ -135,7 +135,11 @@ const Header = ({ branch }) => {
       }
 
       if (!data || !Array.isArray(data) || data.length === 0 || data.Message) {
-        const response = await fetch(fallbackUrl);
+        const response = await fetch(fallbackUrl, {
+          headers: {
+            Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
+          },
+        });
         if (response.ok) {
           const resObj = await response.json();
           data = Array.isArray(resObj) ? resObj : (resObj.data || resObj.value || null);

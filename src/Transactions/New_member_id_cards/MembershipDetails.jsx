@@ -198,17 +198,31 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
       }
 
       const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
-      const rateBranch = isSg ? "LI" : branch;
+      const cleanBranch = String(branch || "").toUpperCase().trim() === "LN" ? "LI" : String(branch || "").toUpperCase().trim();
       const rateUrl = isSg
-        ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${rateBranch}`
-        : `${COLLECTION_API}/goldrate?branch=${branch}`;
-      const response = await fetch(rateUrl);
+        ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${cleanBranch}`
+        : `${COLLECTION_API}/goldrate?branch=${cleanBranch}`;
+
+      const fetchHeaders = {
+        Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
+      };
+
+      let response = await fetch(rateUrl, { headers: fetchHeaders });
+      if (!response.ok && isSg) {
+        const fallbackUrl = `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${cleanBranch}`;
+        response = await fetch(fallbackUrl, { headers: fetchHeaders });
+      }
+
       if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
       const responseData = await response.json();
 
-      if (Array.isArray(responseData?.data)) {
+      const rateList = Array.isArray(responseData)
+        ? responseData
+        : (responseData?.data || responseData?.value || []);
+
+      if (Array.isArray(rateList) && rateList.length > 0) {
         const rates = {};
-        responseData.data.forEach(item => {
+        rateList.forEach(item => {
           rates[item.CommodityTypeID] = item.Rate;
         });
         setCommodityRates(rates);

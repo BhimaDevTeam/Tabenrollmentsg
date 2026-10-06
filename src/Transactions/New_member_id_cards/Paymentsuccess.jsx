@@ -46,7 +46,8 @@ const PaymentSuccess = () => {
             const isSg =
               String(storedCountry).toLowerCase().includes("singapore") ||
               branchHint === "LI" ||
-              branchHint === "LN";
+              branchHint === "LN" ||
+              branchHint === "BGSG";
             const countryHint = isSg ? "singapore" : "india";
             fetch(`${Drafttabledb}/finalize-signed-pdf`, {
               method: "POST",

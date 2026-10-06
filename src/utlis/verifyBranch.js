@@ -10,7 +10,7 @@ const fromBase64 = (value) => {
 
 
 // ─── Singapore branch codes — always valid, no DB lookup needed ───────────────
-const SINGAPORE_BRANCHES = ["LN", "LI"];
+const SINGAPORE_BRANCHES = ["LN", "LI", "BGSG"];
 
 export const fetchBranchDataFunc = async (branch) => {
 	try {

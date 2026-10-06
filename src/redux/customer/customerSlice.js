@@ -13,9 +13,9 @@ const getInitialCountry = () => {
     if (branchParam) {
       try {
         const decoded = decodeURIComponent(atob(branchParam)).toUpperCase().trim();
-        if (["LN", "LI"].includes(decoded)) return "Singapore";
+        if (["LN", "LI", "BGSG"].includes(decoded)) return "Singapore";
       } catch {}
-      if (["LN", "LI"].includes(branchParam.toUpperCase().trim())) return "Singapore";
+      if (["LN", "LI", "BGSG"].includes(branchParam.toUpperCase().trim())) return "Singapore";
     }
     const stored = localStorage.getItem("selectedCountry");
     if (stored) return stored;

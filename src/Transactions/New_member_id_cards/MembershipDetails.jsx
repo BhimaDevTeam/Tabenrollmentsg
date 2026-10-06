@@ -185,7 +185,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         return;
         }
 
-        const isSg = isSingapore || branch === "LI" || branch === "LN";
+        const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
         const rateUrl = isSg
           ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${branch}`
           : `${COLLECTION_API}/goldrate?branch=${branch}`;

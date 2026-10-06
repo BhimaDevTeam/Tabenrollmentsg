@@ -6,7 +6,7 @@ import { formatCurrency } from "./utlis/currencyUtils";
 import { setSelectedCountry } from "./redux/customer/customerSlice";
 
 // Singapore branch codes — always locked to Singapore
-const SINGAPORE_BRANCHES = ["LN", "LI"];
+const SINGAPORE_BRANCHES = ["LN", "LI", "BGSG"];
 
 const isSingaporeBranch = (branchCode) => {
   if (!branchCode) return false;
@@ -86,15 +86,15 @@ const Header = ({ branch }) => {
     );
     const defaultBranchCode = isSgHost ? "LI" : "KRM";
     const finalBranch = (cleanBranch || defaultBranchCode).toUpperCase();
-    // For Singapore, always display and use "LI" as the canonical branch code
-    const displayFinalBranch = SINGAPORE_BRANCHES.includes(finalBranch) ? "LI" : finalBranch;
+    // For Singapore, LN maps to LI; BGSG keeps its branch code
+    const displayFinalBranch = finalBranch === "LN" ? "LI" : finalBranch;
     setDisplayBranch(displayFinalBranch);
     fetchRates(finalBranch);
   }, [branch, location.search, location.pathname, selectedCountry]); // re-fetch when country changes (India ↔ Singapore)
 
   const fetchRates = async (branchCode) => {
     // Detect Singapore by Redux state OR by branch code directly (handles first load race)
-    const sgBranches = ["LN", "LI"];
+    const sgBranches = ["LN", "LI", "BGSG"];
     const isSingapore = currentCountry === "Singapore"
       || sgBranches.includes((branchCode || "").toUpperCase().trim())
       || (typeof window !== "undefined" && (

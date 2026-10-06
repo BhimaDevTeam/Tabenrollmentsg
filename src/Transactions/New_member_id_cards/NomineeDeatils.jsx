@@ -16,7 +16,7 @@ const Nomineedeatils = ({
   const { selectedCustomerID, selectedCountry } = useSelector((state) => state.customer || {});
   const urlParams = new URLSearchParams(window.location.search);
   const rawBranch = (urlParams.get("branch") || urlParams.get("BRANCH") || "").toUpperCase().trim();
-  const isSgBranch = rawBranch === "LN" || rawBranch === "LI";
+  const isSgBranch = rawBranch === "LN" || rawBranch === "LI" || rawBranch === "BGSG";
   const isIndianBranch = rawBranch && !isSgBranch;
   const isSingapore = isSgBranch || (selectedCountry === "Singapore" && !isIndianBranch);
   const phoneMaxLen = isSingapore ? 8 : 10;

@@ -309,7 +309,7 @@ const Mypage = () => {
         // Tell the API whether to send the signature email (controlled via web.config EnableSignatureEmail)
         sendEmail: isSignatureEmailEnabled,
       };
-      const isSingaporeCall = (cleanBranch === "LI" || cleanBranch === "LN" || selectedCountry === "Singapore");
+      const isSingaporeCall = (cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG" || selectedCountry === "Singapore");
       const pdfApiBase = getCollectionApiUrl(isSingaporeCall ? "Singapore" : selectedCountry);
 
       console.log("Generating Enrollment PDF with payload:", {
@@ -577,7 +577,7 @@ const Mypage = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const rawBranch = urlParams.get("branch") || urlParams.get("BRANCH") || branch || membershipData?.branch || localStorage.getItem("decodedBranch") || "KRM";
     const cleanBranch = String(rawBranch).toUpperCase().trim();
-    const isSg = cleanBranch === "LI" || cleanBranch === "LN" || (selectedCountry === "Singapore" && cleanBranch !== "KRM");
+    const isSg = cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG" || (selectedCountry === "Singapore" && cleanBranch !== "KRM");
     if (!isSg && !nomineeData.nomineephoneno) {
       errors.nomineephoneno = "Nominee Phone No is required";
     } else if (nomineeData.nomineephoneno && isSg && !/^\d{8}$/.test(nomineeData.nomineephoneno)) {
@@ -1089,7 +1089,7 @@ const Mypage = () => {
   const saveCustomerToCrm = async (overridePhoto) => {
     try {
       const cleanBranch = getCleanBranch(branch || membershipData.branch || localStorage.getItem("decodedBranch")) || "KRM";
-      const isSg = selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN";
+      const isSg = selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG";
       const cCode = isSg ? "SG" : "IN";
       const cName = isSg ? "Singapore" : "India";
 
@@ -1615,7 +1615,7 @@ const Mypage = () => {
       console.log("Draft Data to be saved:", draftData);
 
       const countryName =
-        selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN"
+        selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG"
           ? "Singapore"
           : "India";
       const countryCode = countryName === "Singapore" ? "SG" : "IN";

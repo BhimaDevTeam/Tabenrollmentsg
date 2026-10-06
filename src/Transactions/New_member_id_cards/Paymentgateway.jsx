@@ -511,7 +511,7 @@ function Paymentgateway({
       if (!mob) return;
       try {
         const cleanBranch = sdparsedData?.branch || localStorage.getItem("decodedBranch") || "";
-        const isSingaporeCall = isSingapore || cleanBranch === "LN" || cleanBranch === "LI";
+        const isSingaporeCall = isSingapore || cleanBranch === "LN" || cleanBranch === "LI" || cleanBranch === "BGSG";
         const apiBase = getCollectionApiUrl(isSingaporeCall ? "Singapore" : selectedCountry);
 
         const resp = await fetch(`${apiBase}/enrollment-info?mobile=${mob}`, {

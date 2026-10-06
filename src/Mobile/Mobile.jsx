@@ -11,7 +11,7 @@ import schemesData, { schemesPageData } from "../data/schemesData";
 import Header from "../header";
 
 // ─── Singapore Branch Codes ───────────────────────────────────────────────────
-const SINGAPORE_BRANCHES = ["LN", "LI"];
+const SINGAPORE_BRANCHES = ["LN", "LI", "BGSG"];
 
 /**
  * Returns true if the given branch code belongs to Singapore.

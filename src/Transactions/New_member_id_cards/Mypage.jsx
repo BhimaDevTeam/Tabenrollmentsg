@@ -95,6 +95,17 @@ const Mypage = () => {
   } =
     location.state && typeof location.state === "object" ? location.state : {};
 
+  const resolvedSelectedScheme = useMemo(() => {
+    if (initialSelectedScheme) return initialSelectedScheme;
+    try {
+      const stored = sessionStorage.getItem("selectedScheme");
+      if (stored) {
+        return stored.startsWith("{") ? JSON.parse(stored) : stored;
+      }
+    } catch (e) {}
+    return null;
+  }, [initialSelectedScheme]);
+
   const effectiveEmail =
     passedEmail ||
     (phoneNo && phoneNo.includes("@") ? phoneNo : "") ||
@@ -2443,7 +2454,7 @@ const Mypage = () => {
               errorValidate={errorValidate}
               clearError={clearError}
               isdraftid_gen={IsDisabledall}
-              preSelectedScheme={initialSelectedScheme}
+              preSelectedScheme={resolvedSelectedScheme}
             />
           </AccordionDetails>
         </Accordion>

@@ -4,12 +4,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useSearchParams } from 'react-router-dom';
 import { useSelector } from "react-redux";
 import { formatCurrency, replaceCurrencySymbols } from "../../utlis/currencyUtils";
-import {COLLECTION_API} from "../../apiurl"
+import { COLLECTION_API, getCollectionApiUrl } from "../../apiurl";
 import { SCHEME_COMMODITY_RATE_MAP } from "../../utlis/commodityConfig";
 import schemesDisplayData from "../../data/schemesData";
 
 // Singapore branch codes: app-facing → DB branch code mapping
-const SINGAPORE_BRANCH_MAP = { LN: "LI", LI: "LI" };
+const SINGAPORE_BRANCH_MAP = { LN: "LI", LI: "LI", BGSG: "BGSG" };
 const SINGAPORE_BRANCHES = Object.keys(SINGAPORE_BRANCH_MAP);
 
 const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearError, membershipData, validateMembership ,isdraftid_gen, preSelectedScheme}) => {
@@ -49,12 +49,13 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
 
   const fetchBranchData = async () => {
     try {
-      const branchFromParams = localStorage.getItem('decodedBranch');
+      const branchFromParams = localStorage.getItem('decodedBranch') || branch;
 
       // — Singapore branch: bypass India DB lookup, map LN → LI directly
       if (branchFromParams && SINGAPORE_BRANCHES.includes(branchFromParams.toUpperCase())) {
         const sgBranchCode = SINGAPORE_BRANCH_MAP[branchFromParams.toUpperCase()] || branchFromParams.toUpperCase();
         setFormData(prevData => ({ ...prevData, branch: sgBranchCode }));
+        fetchSchemeData(sgBranchCode);
         return;
       }
 
@@ -86,17 +87,66 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
   };
 
 
-  const fetchSchemeData = async () => {
-    if (!formData.branch) return;
+  const applyAutoSelectScheme = (schemesList, branchCode) => {
+    if (!Array.isArray(schemesList) || schemesList.length === 0) return;
+
+    let searchCode = "";
+    let searchName = "";
+    if (typeof preSelectedScheme === "string") {
+      searchCode = preSelectedScheme;
+      searchName = preSelectedScheme;
+    } else if (typeof preSelectedScheme === "object" && preSelectedScheme !== null) {
+      searchCode = preSelectedScheme.SchemeCode || preSelectedScheme.schemeCode || preSelectedScheme.apiSchemeData?.SchemeCode || preSelectedScheme.order || "";
+      searchName = preSelectedScheme.title || preSelectedScheme.SchemeName || preSelectedScheme.schemeName || "";
+    }
+
+    const match = schemesList.find(s => {
+      if (searchCode && String(s.SchemeCode).toUpperCase() === String(searchCode).toUpperCase()) return true;
+      if (searchName && s.SchemeName) {
+        const sName = s.SchemeName.toLowerCase();
+        const pStr = searchName.toLowerCase();
+        return sName.includes(pStr) || pStr.includes(sName);
+      }
+      return false;
+    });
+
+    const matchedScheme = match || (schemesList.length === 1 ? schemesList[0] : null);
+
+    if (matchedScheme) {
+      setFormData(prev => ({
+        ...prev,
+        selectedSchemeCode: matchedScheme.SchemeCode,
+        selectedSchemeName: matchedScheme.SchemeName,
+        minInsValue: matchedScheme.MinInsValue,
+        insMultiples: matchedScheme.InsMultiples,
+        schemeType: matchedScheme.SchemeType,
+        commodityTypeId: matchedScheme.CommodityTypeID,
+        installmentAmount: '',
+        isGSTInclusive: Number(matchedScheme.IsGSTInclusive) || 0,
+        gstValue: Number(matchedScheme.GSTValue) || 0,
+      }));
+      setIsLocked(true);
+      if (matchedScheme.SchemeType === 'W') {
+        const currentBranch = branchCode || formData.branch || branch || localStorage.getItem('decodedBranch');
+        fetchCommodityRates(currentBranch);
+      }
+    }
+  };
+
+  const fetchSchemeData = async (branchOverride) => {
+    const targetBranch = branchOverride || formData.branch || localStorage.getItem('decodedBranch') || branch;
+    if (!targetBranch) return;
     try {
-      const isSingapore = selectedCountry === "Singapore";
-      const response = await fetch(`${COLLECTION_API}/schemes?branch=${formData.branch}&country=${selectedCountry}`, {
+      const isSgBranch = isSingapore || ["LI", "LN", "BGSG"].includes(String(targetBranch).toUpperCase());
+      const effectiveCountry = isSgBranch ? "Singapore" : (selectedCountry || "India");
+      const apiBase = isSgBranch ? "https://suvarnagopura.com/DraftEnrollmentApi/api" : getCollectionApiUrl(selectedCountry);
+      const response = await fetch(`${apiBase}/schemes?branch=${encodeURIComponent(targetBranch)}&country=${encodeURIComponent(effectiveCountry)}`, {
         method: "GET",
         headers: {
           "Key": "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
           "Content-Type": "application/json",
-          "country": selectedCountry || "India",
-          "country-code": isSingapore ? "sg" : "in",
+          "country": effectiveCountry,
+          "country-code": isSgBranch ? "sg" : "in",
         },
       });
 
@@ -105,10 +155,12 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
       }
 
       const responseData = await response.json();
-      // console.log("responsedata", responseData);
+      const rawList = Array.isArray(responseData)
+        ? responseData
+        : (responseData?.value || responseData?.data || responseData?.schemes || []);
 
-      if (Array.isArray(responseData) && responseData.length > 0) {
-        const activeSchemes = responseData.filter(s => {
+      if (Array.isArray(rawList) && rawList.length > 0) {
+        const activeSchemes = rawList.filter(s => {
           if (s.isClosed && String(s.isClosed).toUpperCase() === 'Y') return false;
           const isTabEn = s.isTabEnScheme ?? s.IsTabEnScheme ?? s.isTabEn ?? s.IsTabEn;
           const isEnabled =
@@ -128,84 +180,51 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
         });
         setSchemeData(activeSchemes);
 
-        // Auto-select scheme if preSelectedScheme is provided and not already selected
-        if (preSelectedScheme && !formData.selectedSchemeCode) {
-          let searchCode = "";
-          let searchName = "";
-          if (typeof preSelectedScheme === "string") {
-            searchName = preSelectedScheme;
-          } else if (typeof preSelectedScheme === "object" && preSelectedScheme !== null) {
-            searchCode = preSelectedScheme.SchemeCode || preSelectedScheme.schemeCode || preSelectedScheme.apiSchemeData?.SchemeCode || "";
-            searchName = preSelectedScheme.title || preSelectedScheme.SchemeName || preSelectedScheme.schemeName || "";
-          }
-
-          const match = activeSchemes.find(s => {
-            if (searchCode && String(s.SchemeCode).toUpperCase() === String(searchCode).toUpperCase()) return true;
-            if (searchName && s.SchemeName) {
-              const sName = s.SchemeName.toLowerCase();
-              const pStr = searchName.toLowerCase();
-              return sName.includes(pStr) || pStr.includes(sName);
-            }
-            return false;
-          });
-
-          if (match) {
-            setFormData(prev => ({
-              ...prev,
-              selectedSchemeCode: match.SchemeCode,
-              selectedSchemeName: match.SchemeName,
-              minInsValue: match.MinInsValue,
-              insMultiples: match.InsMultiples,
-              schemeType: match.SchemeType,
-              commodityTypeId: match.CommodityTypeID,
-              installmentAmount: '',
-              isGSTInclusive: Number(match.IsGSTInclusive) || 0,
-              gstValue: Number(match.GSTValue) || 0,
-            }));
-            if (match.SchemeType === 'W') {
-              const currentBranch = formData.branch || branch || localStorage.getItem('decodedBranch');
-              fetchCommodityRates(currentBranch);
-            }
-          }
-        }
-
+        // Auto-select scheme
+        applyAutoSelectScheme(activeSchemes, targetBranch);
       } else {
         throw new Error("No scheme data received");
       }
     } catch (error) {
       console.error("Error fetching scheme data:", error);
-      //   setErrors(error.message);
     }
   };
 
-    const fetchCommodityRates = async (branch) => {
+  const fetchCommodityRates = async (branch) => {
     try {
-        if (!branch) {
+      if (!branch) {
         console.error("Branch is undefined or null");
         return;
-        }
+      }
 
-        const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
-        const rateUrl = isSg
-          ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${branch}`
-          : `${COLLECTION_API}/goldrate?branch=${branch}`;
-        const response = await fetch(rateUrl);
-        if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-        const responseData = await response.json();
+      const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
+      const rateBranch = isSg ? "LI" : branch;
+      const rateUrl = isSg
+        ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${rateBranch}`
+        : `${COLLECTION_API}/goldrate?branch=${branch}`;
+      const response = await fetch(rateUrl);
+      if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+      const responseData = await response.json();
 
-        if (Array.isArray(responseData?.data)) {
+      if (Array.isArray(responseData?.data)) {
         const rates = {};
         responseData.data.forEach(item => {
-            rates[item.CommodityTypeID] = item.Rate;
+          rates[item.CommodityTypeID] = item.Rate;
         });
         setCommodityRates(rates);
-        } else {
+      } else {
         throw new Error("No rate data received");
-        }
+      }
     } catch (error) {
-        console.error("Error fetching commodity rates:", error);
+      console.error("Error fetching commodity rates:", error);
     }
-    };
+  };
+
+  useEffect(() => {
+    if (schemeData.length > 0 && !formData.selectedSchemeCode) {
+      applyAutoSelectScheme(schemeData, formData.branch);
+    }
+  }, [preSelectedScheme, schemeData]);
 
   useEffect(() => {
     setMembershipData(formData);
@@ -326,8 +345,11 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
   };
 
   const getFilteredDisplaySchemes = () => {
-    const rawList = Array.isArray(schemeData) && schemeData.length > 0 ? schemeData : schemesDisplayData;
-    const isSg = isSingapore || activeSymbol === "S$";
+    const isSg = isSingapore || activeSymbol === "S$" || formData.branch === "LI" || formData.branch === "BGSG" || formData.branch === "LN";
+    const defaultList = isSg
+      ? schemesDisplayData.filter(s => /shreyas|kanaka/i.test(s.title || s.SchemeName || ""))
+      : schemesDisplayData;
+    const rawList = Array.isArray(schemeData) && schemeData.length > 0 ? schemeData : defaultList;
 
     const mapped = rawList.map((apiScheme, index) => {
       const apiName = (apiScheme.SchemeName || apiScheme.title || "").trim().toLowerCase();
@@ -449,7 +471,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
               </span>
             </p>
           )}
-          {isLocked && !isdraftid_gen && (
+          {isLocked && !isdraftid_gen && schemeData.length > 1 && (
             <button
               type="button"
               onClick={() => { setShowSchemeBrowser(true); setBrowsingScheme(null); }}
@@ -536,7 +558,13 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
                 )}
                 <button type="button" className="custom-button1" style={{ width: "100%", padding: "10px", fontSize: "14px", fontWeight: "600", borderRadius: "4px", marginTop: "8px" }}
                   onClick={() => {
-                    const match = schemeData.find(s => s.SchemeName && s.SchemeName.toLowerCase().includes(browsingScheme.title.toLowerCase()));
+                    const match = schemeData.find(s => {
+                      const sName = (s.SchemeName || "").toLowerCase();
+                      const bTitle = (browsingScheme.title || browsingScheme.SchemeName || "").toLowerCase();
+                      const bCode = (browsingScheme.SchemeCode || "").toLowerCase();
+                      const sCode = (s.SchemeCode || "").toLowerCase();
+                      return (bCode && sCode === bCode) || (bTitle && sName.includes(bTitle)) || (sName && bTitle.includes(sName));
+                    });
                     if (match) {
                       setFormData(prev => ({ 
                         ...prev, 

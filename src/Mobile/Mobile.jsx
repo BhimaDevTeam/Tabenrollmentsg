@@ -209,7 +209,7 @@ const Mobile = () => {
 
         if (response.ok) {
           const resData = await response.json();
-          data = Array.isArray(resData) ? resData : (resData?.data || resData?.schemes || []);
+          data = Array.isArray(resData) ? resData : (resData?.value || resData?.data || resData?.schemes || []);
         }
       } catch (err) {
         console.warn("Primary scheme fetch failed, trying fallback:", err);
@@ -227,7 +227,7 @@ const Mobile = () => {
           });
           if (fbResponse.ok) {
             const fbData = await fbResponse.json();
-            data = Array.isArray(fbData) ? fbData : (fbData?.data || fbData?.schemes || []);
+            data = Array.isArray(fbData) ? fbData : (fbData?.value || fbData?.data || fbData?.schemes || []);
           }
         } catch (fbErr) {
           console.warn("Fallback scheme fetch failed:", fbErr);
@@ -569,6 +569,13 @@ const Mobile = () => {
 
     const trimmedOtp = receivedOtp.trim();
     const schemeToPass = enrolledScheme || viewingScheme || activeSchemes[0] || "";
+    try {
+      if (schemeToPass) {
+        sessionStorage.setItem("selectedScheme", typeof schemeToPass === "object" ? JSON.stringify(schemeToPass) : schemeToPass);
+      }
+    } catch (e) {
+      console.warn("Could not save selectedScheme to sessionStorage:", e);
+    }
 
     // Hardcode OTP: 123456
     if (trimmedOtp === "123456") {

@@ -198,20 +198,16 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
       }
 
       const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
-      const cleanBranch = String(branch || "").toUpperCase().trim() === "LN" ? "LI" : String(branch || "").toUpperCase().trim();
+      const cleanBranch = String(branch || "").toUpperCase().trim() === "LN" ? "li" : String(branch || "").toLowerCase().trim();
       const rateUrl = isSg
         ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${cleanBranch}`
-        : `${COLLECTION_API}/goldrate?branch=${cleanBranch}`;
+        : `${COLLECTION_API}/goldrate?branch=${cleanBranch.toUpperCase()}`;
 
       const fetchHeaders = {
         Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
       };
 
-      let response = await fetch(rateUrl, { headers: fetchHeaders });
-      if (!response.ok && isSg) {
-        const fallbackUrl = `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${cleanBranch}`;
-        response = await fetch(fallbackUrl, { headers: fetchHeaders });
-      }
+      const response = await fetch(rateUrl, { headers: fetchHeaders });
 
       if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
       const responseData = await response.json();

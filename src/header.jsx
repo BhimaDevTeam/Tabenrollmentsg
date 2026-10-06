@@ -103,18 +103,18 @@ const Header = ({ branch }) => {
       ))
       || localStorage.getItem("selectedCountry") === "Singapore";
 
-    // For Singapore, LN maps to LI; BGSG keeps BGSG; LI keeps LI
+    // For Singapore, LN maps to li; BGSG keeps bgsg; LI keeps li
     const targetBranch = isSingapore
-      ? ((branchCode || "").toUpperCase().trim() === "LN" ? "LI" : ((branchCode || "").toUpperCase().trim() || "LI"))
+      ? ((branchCode || "").toUpperCase().trim() === "LN" ? "li" : ((branchCode || "").toLowerCase().trim() || "li"))
       : branchCode;
 
-    // For Singapore, gold and silver rates are fetched from VrudhiPortalAPISG by branch
+    // For Singapore, gold and silver rates are fetched strictly from VrudhiPortalAPISG by branch
     // For India, use VrudhiPortalAPI with fallback to DraftEnrollmentApi
     const primaryUrl = isSingapore
       ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
       : `https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
     const fallbackUrl = isSingapore
-      ? `https://suvarnagopura.com/DraftEnrollmentApi/api/goldrate?branch=${targetBranch}`
+      ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
       : `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
 
     try {

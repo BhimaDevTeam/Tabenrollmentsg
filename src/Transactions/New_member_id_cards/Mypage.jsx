@@ -2715,7 +2715,7 @@ const Mypage = () => {
                 fontSize: { xs: "16px" },
               }}
             >
-              " Thank you for Subscribing for JPP Plan"
+              " Thank you for Subscribing for BMC Plan"
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">
               <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
@@ -2791,7 +2791,7 @@ const Mypage = () => {
                 fontSize: { xs: "16px" },
               }}
             >
-              "Thank you for your interest in the JPP Plan. Please contact a
+              "Thank you for your interest in the BMC Plan. Please contact a
               Bhima agent to proceed with the payment."
             </Typography>
             <Typography sx={{ mt: 2 }} align="center">

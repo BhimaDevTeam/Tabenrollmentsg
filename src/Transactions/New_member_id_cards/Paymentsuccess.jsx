@@ -175,7 +175,7 @@ const PaymentSuccess = () => {
           <h2 style={{ margin: "0", fontSize: "22px", fontWeight: "bold" }}>
             Your Receipt
           </h2>
-          <p style={{ marginTop: 10 }}>Thank you for Subscribing for JPP Plan</p>
+          <p style={{ marginTop: 10 }}>Thank you for Subscribing for BMC Plan</p>
         </div>
 
         {/* Receipt details */}

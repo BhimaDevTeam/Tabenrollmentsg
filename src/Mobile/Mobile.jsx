@@ -186,10 +186,11 @@ const Mobile = () => {
     const country = countryOverride || selectedCountry || "India";
     const isSg = country === "Singapore";
     const apiBase = getCollectionApiUrl(country);
-    const primaryUrl = isSg
+    // DraftEnrollmentApi correctly filters schemes by branch (e.g. BGSG -> 1 scheme, LI -> 2 schemes)
+    const primaryUrl = `${apiBase}/schemes?branch=${encodeURIComponent(targetBranch)}&country=${encodeURIComponent(country)}`;
+    const fallbackUrl = isSg
       ? `${SG_SCHEME_API}?branch=${encodeURIComponent(targetBranch)}`
       : `${apiBase}/schemes?branch=${encodeURIComponent(targetBranch)}&country=${encodeURIComponent(country)}`;
-    const fallbackUrl = `${apiBase}/schemes?branch=${encodeURIComponent(targetBranch)}&country=${encodeURIComponent(country)}`;
 
     try {
       let data = null;
@@ -197,7 +198,6 @@ const Mobile = () => {
         const response = await fetch(primaryUrl, {
           method: "GET",
           headers: {
-            "Key": "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
             "Content-Type": "application/json",
             "country": country,
             "country-code": isSg ? "sg" : "in",
@@ -215,11 +215,12 @@ const Mobile = () => {
         console.warn("Primary scheme fetch failed, trying fallback:", err);
       }
 
-      // If primary failed or returned empty data for Singapore, try fallback from DraftEnrollmentApi
+      // If primary failed or returned empty data for Singapore, try fallback from SG_SCHEME_API
       if ((!data || !Array.isArray(data) || data.length === 0) && isSg) {
         try {
           const fbResponse = await fetch(fallbackUrl, {
             headers: {
+              "Key": "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",
               "country": country,
               "country-code": "sg",
             },
@@ -377,8 +378,8 @@ const Mobile = () => {
 
       const encodedBranch = isBase64(branch) ? branch : toBase64(branch);
       const rawDecoded = resolveBranchCode(encodedBranch) || urlBranchCode;
-      // For Singapore, always use "LI" as the canonical branch code
-      const decodedBranch = isSingaporeBranch(rawDecoded) ? "LI" : rawDecoded;
+      // For Singapore, LN maps to LI; other branch codes like BGSG remain intact
+      const decodedBranch = (rawDecoded || "").toUpperCase().trim() === "LN" ? "LI" : rawDecoded;
 
       window.history.replaceState({}, "", `?branch=${encodedBranch}`);
       localStorage.setItem("encodedBranch", encodedBranch);

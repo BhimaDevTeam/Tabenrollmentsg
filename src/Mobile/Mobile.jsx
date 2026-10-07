@@ -346,7 +346,7 @@ const Mobile = () => {
   useEffect(() => {
     async function bootstrapBranch() {
       if (!branch) {
-        navigate({ pathname: location.pathname, search: "?branch=TE4=" }, { replace: true });
+        navigate({ pathname: location.pathname, search: "?branch=QkdTRw==" }, { replace: true });
         return;
       }
 

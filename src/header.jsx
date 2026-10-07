@@ -79,12 +79,12 @@ const Header = ({ branch }) => {
       }
     }
 
-    // Default to "LI" for Singapore app, otherwise "KRM"
+    // Default to "BGSG" for Singapore app, otherwise "KRM"
     const isSgHost = typeof window !== "undefined" && (
       window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg") ||
       window.location.hostname.toLowerCase().includes("tabenrollmentsg")
     );
-    const defaultBranchCode = isSgHost ? "LI" : "KRM";
+    const defaultBranchCode = isSgHost ? "BGSG" : "KRM";
     const finalBranch = (cleanBranch || defaultBranchCode).toUpperCase();
     // For Singapore, LN maps to LI; BGSG keeps its branch code
     const displayFinalBranch = finalBranch === "LN" ? "LI" : finalBranch;

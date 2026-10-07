@@ -128,7 +128,7 @@ const Subscriberdetails = ({
 
   const openOtpFor = async (target) => {
     if (target === "mobile") {
-      const cleanMob = String(formData.mobileNo || "").replace(/\D/g, "");
+      const cleanMob = String(formData.mobileNo || savedMobile || "").replace(/\D/g, "");
       const reqLen = isSingapore ? 8 : 10;
       if (!cleanMob) {
         toast.error("Please enter a mobile number first.");
@@ -138,38 +138,52 @@ const Subscriberdetails = ({
         toast.error(`Mobile number must be ${reqLen} digits.`);
         return;
       }
-      if (errorValidate?.mobileNo) {
+      if (
+        errorValidate?.mobileNo &&
+        !errorValidate.mobileNo.toLowerCase().includes("verify your mobile")
+      ) {
         toast.error(errorValidate.mobileNo);
         return;
       }
+      if (clearError) clearError("mobileNo");
       if (onMobileLeave) {
-        const bindErr = await onMobileLeave(cleanMob, formData.email || savedEmail || "");
+        const bindErr = await onMobileLeave(cleanMob, formData.email || savedEmail || initialEmail || "");
         if (bindErr) {
           toast.error(bindErr);
           return;
         }
+      }
+      if (!formData.mobileNo && cleanMob) {
+        setFormData((prev) => ({ ...prev, mobileNo: cleanMob }));
       }
       setOtpTarget("mobile");
       setEnteredOtp("");
       setOtpModalError("");
       setShowOtpModal(true);
     } else if (target === "email") {
-      const email = String(formData.email || "").trim();
+      const email = String(formData.email || savedEmail || initialEmail || "").trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!email || !emailRegex.test(email)) {
         toast.error("Please enter a valid email address first.");
         return;
       }
-      if (errorValidate?.email) {
+      if (
+        errorValidate?.email &&
+        !errorValidate.email.toLowerCase().includes("verify your email")
+      ) {
         toast.error(errorValidate.email);
         return;
       }
+      if (clearError) clearError("email");
       if (onEmailLeave) {
-        const bindErr = await onEmailLeave(email, formData.mobileNo || "");
+        const bindErr = await onEmailLeave(email, formData.mobileNo || savedMobile || "");
         if (bindErr) {
           toast.error(bindErr);
           return;
         }
+      }
+      if (!formData.email && email) {
+        setFormData((prev) => ({ ...prev, email }));
       }
       setOtpTarget("email");
       setEnteredOtp("");
@@ -1220,8 +1234,8 @@ const Subscriberdetails = ({
             An OTP has been sent to{" "}
             <strong>
               {otpTarget === "mobile"
-                ? `${isSingapore ? "+65" : "+91"} ${formData.mobileNo}`
-                : formData.email}
+                ? `${isSingapore ? "+65" : "+91"} ${formData.mobileNo || savedMobile || ""}`
+                : (formData.email || savedEmail || initialEmail || "")}
             </strong>
             . Please enter the OTP to verify.
           </p>

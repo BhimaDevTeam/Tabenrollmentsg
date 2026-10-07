@@ -700,6 +700,17 @@
   margin: 0;
 }
 
+.modal-header .btn-close {
+  filter: brightness(0) invert(1) !important;
+  opacity: 0.9 !important;
+}
+
+.modal-header .close {
+  color: #fff !important;
+  opacity: 0.9 !important;
+  text-shadow: none !important;
+}
+
 .modal-body {
   padding: 20px;
   font-family: 'Inter', sans-serif;

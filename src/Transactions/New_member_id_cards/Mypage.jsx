@@ -1215,7 +1215,7 @@ const Mypage = () => {
           ? subscriberData.mobileNo
           : (phone && !phone.includes("@") && !/[a-zA-Z]/.test(phone)) ? phone : "",
         EmailID: subscriberData.email || (phone && phone.includes("@") ? phone : "") || "",
-        SourceMode: "Vrudhi",
+        SourceMode: "Tab enrollment",
         Name: subscriberData.subscriberName || selectedCustomerID?.Name || "",
         IsAdult: subscriberData.isMajor === "Y" || subscriberData.isMajor === true || (subscriberData.dob ? calculateAge(subscriberData.dob) >= 18 : true),
         DateOfBirth: formatDateToYMD(subscriberData.dob),

@@ -1426,7 +1426,7 @@ const Mypage = () => {
 
       const isaadharVerified = aadharverified || 0;
       const aadhar_No = aadharNo ? aadharNo : null;
-      const cleanBranch = getCleanBranch(branch || membershipData.branch);
+      const cleanBranch = getCleanBranch(branch || membershipData.branch || localStorage.getItem("decodedBranch") || "BGSG");
       // Signature / enrollment PDF is not used on save.
       // let signRequestId =
       //   sessionStorage.getItem(`currentSignRequestId_${mob}`) ||
@@ -1625,14 +1625,40 @@ const Mypage = () => {
 
       console.log("Draft Data to be saved:", draftData);
 
-      const countryName =
-        selectedCountry === "Singapore" || cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG"
-          ? "Singapore"
-          : "India";
+      const isSingaporeCall =
+        selectedCountry === "Singapore" ||
+        cleanBranch === "LI" ||
+        cleanBranch === "LN" ||
+        cleanBranch === "BGSG" ||
+        localStorage.getItem("decodedBranch") === "LI" ||
+        localStorage.getItem("decodedBranch") === "LN" ||
+        localStorage.getItem("decodedBranch") === "BGSG" ||
+        (typeof window !== "undefined" && (
+          window.location.hostname.includes("tabenrollmentsg") ||
+          window.location.hostname.includes("vercel.app")
+        ));
+
+      const countryName = isSingaporeCall ? "Singapore" : "India";
       const countryCode = countryName === "Singapore" ? "SG" : "IN";
       const draftApiBase = getCollectionApiUrl(countryName);
 
-      // STEP 3: Always save draft in DraftEnrollmentApi (needs DraftID)
+      // For Singapore flow, do NOT call DraftEnrollmentApi or store anything in it.
+      // Customer details and documents are already saved directly in CRM (Customerdatacreate).
+      if (isSingaporeCall) {
+        const sgDraftId =
+          crmResponse?.CustomerID ||
+          crmResponse?.CustomerDBID ||
+          selectedCustomerID?.CustomerID ||
+          selectedCustomerID?.CustomerDBID ||
+          `SG-${Date.now()}`;
+
+        setdraftIDData(sgDraftId);
+        setIsDraftSaved(true);
+        console.log("[saveDraft] Singapore: skipped DraftEnrollmentApi, saved in CRM with ID:", sgDraftId);
+        return sgDraftId;
+      }
+
+      // Fallback for India flow only: save draft in DraftEnrollmentApi
       const response = await axios.post(
         `${draftApiBase}/draftenrollment`,
         draftData,

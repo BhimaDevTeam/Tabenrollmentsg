@@ -783,11 +783,11 @@ const Mobile = () => {
             />
             <p className="_x102">Welcome to Bhima Gold </p>
             <div className="text">
-              Thank you for your interest to join our Jewellery Purchase Plan
+              Thank you for your interest to join Our BMC Plan
             </div>
           </div>
 
-          {/* Selected scheme badge */}
+          {/* Selected plan badge */}
           {enrolledScheme && (
             <div style={{
               background: "linear-gradient(135deg, #fffdfa 0%, #fbf6ee 100%)",
@@ -817,7 +817,7 @@ const Mobile = () => {
                 </div>
                 <div>
                   <span style={{ color: "#9a8069", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: "'Inter', sans-serif" }}>
-                    Selected Scheme
+                    Selected Plan
                   </span>
                   <p style={{ margin: 0, fontWeight: "700", color: "#4a2e14", fontSize: "15px", fontFamily: "'Inter', sans-serif" }}>
                     {enrolledScheme.title}
@@ -1097,7 +1097,7 @@ const Mobile = () => {
         </div>
       )}
 
-      {/* Jewellery Purchase Plan section — shown by default */}
+      {/* BMC Plan section — shown by default */}
       {!showMobileForm && (
         <div className="schemes-landing" style={{
           width: "100%",
@@ -1120,10 +1120,10 @@ const Mobile = () => {
               style={{ maxHeight: "44px", objectFit: "contain", marginBottom: "4px" }}
             />
             <h2 className="scheme-page-title">
-              Jewellery Purchase Plan
+              BMC Plan
             </h2>
             <p style={{ color: "#8c5c34", fontSize: "12px", margin: "0 0 4px 0", lineHeight: 1.35 }}>
-              Choose from our uniquely designed EMA Jewellery Purchase Plans
+              Choose from our uniquely designed EMA BMC Plans
             </p>
           </div>
 

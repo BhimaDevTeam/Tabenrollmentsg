@@ -275,7 +275,7 @@ const EnrollmentPreviewModal = ({
             <div className="epm-alert-text">
               <strong>Application Form Preview & Verification</strong>
               <span>
-                Please verify all personal details, scheme selection, nominee, and uploaded documents.
+                Please verify all personal details, plan selection, nominee, and uploaded documents.
                 Click <strong>"Edit"</strong> on any section below to make adjustments, or click <strong>"Confirm & Save Enrollment"</strong> at the bottom to complete your registration.
               </span>
             </div>
@@ -353,9 +353,9 @@ const EnrollmentPreviewModal = ({
                   <i className="bi bi-gem"></i>
                 </div>
                 <div className="epm-scheme-badge-info">
-                  <span className="epm-scheme-badge-title">Selected Scheme</span>
+                  <span className="epm-scheme-badge-title">Selected Plan</span>
                   <strong className="epm-scheme-badge-name">
-                    {membershipData.selectedSchemeName || "Scheme Not Selected"}
+                    {membershipData.selectedSchemeName || "Plan Not Selected"}
                   </strong>
                 </div>
                 {membershipData.installmentAmount && (
@@ -941,7 +941,7 @@ const EnrollmentPreviewModal = ({
                     <span>
                       I hereby declare and confirm that all details, personal information, and documents provided
                       in this application form are accurate, complete, and legally binding under the Bhima Gold
-                      Scheme Terms and Conditions.
+                      Plan Terms and Conditions.
                     </span>
                   </div>
                 </div>

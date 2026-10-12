@@ -1642,23 +1642,7 @@ const Mypage = () => {
       const countryCode = countryName === "Singapore" ? "SG" : "IN";
       const draftApiBase = getCollectionApiUrl(countryName);
 
-      // For Singapore flow, do NOT call DraftEnrollmentApi or store anything in it.
-      // Customer details and documents are already saved directly in CRM (Customerdatacreate).
-      if (isSingaporeCall) {
-        const sgDraftId =
-          crmResponse?.CustomerID ||
-          crmResponse?.CustomerDBID ||
-          selectedCustomerID?.CustomerID ||
-          selectedCustomerID?.CustomerDBID ||
-          `SG-${Date.now()}`;
-
-        setdraftIDData(sgDraftId);
-        setIsDraftSaved(true);
-        console.log("[saveDraft] Singapore: skipped DraftEnrollmentApi, saved in CRM with ID:", sgDraftId);
-        return sgDraftId;
-      }
-
-      // Fallback for India flow only: save draft in DraftEnrollmentApi
+      // STEP 3: Save draft in DraftEnrollmentApi (creates DraftID)
       const response = await axios.post(
         `${draftApiBase}/draftenrollment`,
         draftData,

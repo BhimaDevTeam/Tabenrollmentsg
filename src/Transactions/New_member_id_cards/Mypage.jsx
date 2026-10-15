@@ -117,28 +117,33 @@ const Mypage = () => {
 
   const isBase64 = (str) => {
     if (!str || typeof str !== "string") return false;
+    const upper = str.toUpperCase().trim();
+    if (["BGSG", "LI", "LN", "KRM"].includes(upper)) return false;
     try {
-      return btoa(atob(str)) === str;
+      const decoded = decodeURIComponent(atob(str));
+      return btoa(decoded) === str && /^[A-Za-z0-9_-]+$/.test(decoded);
     } catch {
       return false;
     }
   };
 
   const getCleanBranch = (val) => {
-    const raw = val || localStorage.getItem("decodedBranch") || "";
+    const raw = String(val || localStorage.getItem("decodedBranch") || "").trim();
     if (!raw) return "";
-    let decoded = raw;
-    if (isBase64(raw)) {
-      try {
-        decoded = decodeURIComponent(atob(raw));
-      } catch (e) {
-        decoded = raw;
+    const upper = raw.toUpperCase();
+    if (upper === "BGSG") return "BGSG";
+    if (upper === "LI" || upper === "LN") return "LI";
+
+    // Attempt base64 decode only if it yields valid alphanumeric characters
+    try {
+      const decoded = decodeURIComponent(atob(raw)).toUpperCase().trim();
+      if (/^[A-Za-z0-9_-]+$/.test(decoded)) {
+        if (decoded === "LN") return "LI";
+        return decoded;
       }
-    }
-    if (decoded && decoded.toUpperCase().trim() === "LN") {
-      return "LI";
-    }
-    return decoded;
+    } catch {}
+
+    return raw;
   };
 
   const [newSubscriber, setNewSubscriber] = useState(initialSubscriber || null);
@@ -587,7 +592,7 @@ const Mypage = () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawBranch = urlParams.get("branch") || urlParams.get("BRANCH") || branch || membershipData?.branch || localStorage.getItem("decodedBranch") || "KRM";
-    const cleanBranch = String(rawBranch).toUpperCase().trim();
+    const cleanBranch = getCleanBranch(rawBranch);
     const isSg = cleanBranch === "LI" || cleanBranch === "LN" || cleanBranch === "BGSG" || (selectedCountry === "Singapore" && cleanBranch !== "KRM");
     if (!isSg && !nomineeData.nomineephoneno) {
       errors.nomineephoneno = "Nominee Phone No is required";

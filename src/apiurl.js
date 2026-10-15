@@ -18,22 +18,22 @@ const ENV = getEnv();
 
 const BASE_URLS = {
   local: "http://localhost:9000/api",
-  hosted: "https://suvarnagopura.com/DraftEnrollmentApi/api",
+  hosted: "https://thrilok.bhima.sg/draftenrollmentapi/api",
   network: "https://vrudhi.bhima.info/DraftEnrollmentApi/api",
   production: "https://draftenrollment.sharaanapps.co.in/api",
 };
 
 const BASE_CAMERA_URL = {
   local: "http://localhost:9000",
-  hosted: "https://suvarnagopura.com/DraftEnrollmentApi",
+  hosted: "https://thrilok.bhima.sg/draftenrollmentapi",
   network: "https://vrudhi.bhima.info/DraftEnrollmentApi",
   production: "https://vrudhicameranew.sharaanapps.co.in",
 };
 
 // ── Singapore API Base Overrides ──────────────────────────────────────
-export const SG_COLLECTION_API = "https://suvarnagopura.com/DraftEnrollmentApi/api";
-export const SG_BaseURL = "https://suvarnagopura.com/DraftEnrollmentApi";
-export const SG_SCHEME_API = "https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/scheme-details";
+export const SG_COLLECTION_API = "https://thrilok.bhima.sg/draftenrollmentapi/api";
+export const SG_BaseURL = "https://thrilok.bhima.sg/draftenrollmentapi";
+export const SG_SCHEME_API = "https://thrilok.bhima.sg/VrudhiPortalAPI/api/payment-gateway/scheme-details";
 
 export const getCollectionApiUrl = (countryOrCode) => {
   const v = String(countryOrCode || "").toLowerCase();
@@ -63,21 +63,24 @@ export const BaseURL = BASE_CAMERA_URL[ENV];
 // ── External / Third-party APIs ──────────────────────────────────────
 export const CustomerMobileOTP = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api";
 export const Mobileverification = `${COLLECTION_API}/customer-full-details`;
-export const LegacyMobileverification = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails";
+// INDIA (disabled - Singapore only)
+// export const LegacyMobileverification = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails";
 export const AadharAPI = "https://suvarnagopura.com/MagentoAPI/api_db.js/api";
 export const PincodeAPI = "https://api.postalpincode.in/pincode";
 export const DigiLockerAPI = "https://suvarnagopura.com/DIGILOCKER/api/digilocker";
 
 // ── New member creation (portal) - country-specific ──────────────────
-export const NEW_MEMBER_API_IN =
-  "https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/newmember-creationTE";
+// INDIA (disabled - Singapore only)
+// export const NEW_MEMBER_API_IN =
+//   "https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/newmember-creationTE";
 export const NEW_MEMBER_API_SG =
-  "https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/newmember-creationTE";
+  "https://thrilok.bhima.sg/VrudhiPortalAPI/api/payment-gateway/newmember-creationTE";
 
 export const getNewMemberApiUrl = (countryOrCode) => {
-  const v = String(countryOrCode || "").toLowerCase();
-  const isSg = v === "singapore" || v === "sg" || v === "sgd";
-  return isSg ? NEW_MEMBER_API_SG : NEW_MEMBER_API_IN;
+  // const v = String(countryOrCode || "").toLowerCase();
+  // const isSg = v === "singapore" || v === "sg" || v === "sgd";
+  // return isSg ? NEW_MEMBER_API_SG : NEW_MEMBER_API_IN;
+  return NEW_MEMBER_API_SG;
 };
 
 // ── Singapore CRM - customer lookup by mobile / email ────────────────

@@ -293,8 +293,12 @@ const Mobile = () => {
     return decodeURIComponent(atob(value));
   };
   const isBase64 = (str) => {
+    if (!str || typeof str !== "string") return false;
+    const upper = str.toUpperCase().trim();
+    if (["BGSG", "LI", "LN", "KRM"].includes(upper)) return false;
     try {
-      return btoa(atob(str)) === str;
+      const decoded = decodeURIComponent(atob(str));
+      return btoa(decoded) === str && /^[A-Za-z0-9_-]+$/.test(decoded);
     } catch {
       return false;
     }

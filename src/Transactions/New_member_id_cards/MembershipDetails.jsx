@@ -139,7 +139,7 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
     try {
       const isSgBranch = isSingapore || ["LI", "LN", "BGSG"].includes(String(targetBranch).toUpperCase());
       const effectiveCountry = isSgBranch ? "Singapore" : (selectedCountry || "India");
-      const apiBase = isSgBranch ? "https://suvarnagopura.com/DraftEnrollmentApi/api" : getCollectionApiUrl(selectedCountry);
+      const apiBase = isSgBranch ? "https://thrilok.bhima.sg/draftenrollmentapi/api" : getCollectionApiUrl(selectedCountry);
       const response = await fetch(`${apiBase}/schemes?branch=${encodeURIComponent(targetBranch)}&country=${encodeURIComponent(effectiveCountry)}`, {
         method: "GET",
         headers: {
@@ -199,9 +199,11 @@ const Membershipdetails = ({ setMembershipData, branch ,errorValidate, clearErro
 
       const isSg = isSingapore || branch === "LI" || branch === "LN" || branch === "BGSG";
       const cleanBranch = String(branch || "").toUpperCase().trim() === "LN" ? "li" : String(branch || "").toLowerCase().trim();
-      const rateUrl = isSg
-        ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${cleanBranch}`
-        : `${COLLECTION_API}/goldrate?branch=${cleanBranch.toUpperCase()}`;
+      // INDIA (disabled - Singapore only)
+      // const rateUrl = isSg
+      //   ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${cleanBranch}`
+      //   : `${COLLECTION_API}/goldrate?branch=${cleanBranch.toUpperCase()}`;
+      const rateUrl = `https://thrilok.bhima.sg/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${cleanBranch}`;
 
       const fetchHeaders = {
         Key: "WEYA5TXDZCEEZFG9CLATH37HFV84AMH6794CVYGVY8WXS52",

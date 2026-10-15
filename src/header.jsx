@@ -110,12 +110,15 @@ const Header = ({ branch }) => {
 
     // For Singapore, gold and silver rates are fetched strictly from VrudhiPortalAPISG by branch
     // For India, use VrudhiPortalAPI with fallback to DraftEnrollmentApi
-    const primaryUrl = isSingapore
-      ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
-      : `https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
-    const fallbackUrl = isSingapore
-      ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
-      : `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
+    // INDIA (disabled - Singapore only)
+    // const primaryUrl = isSingapore
+    //   ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
+    //   : `https://vrudhi.bhima.info/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch.toLowerCase()}`;
+    // const fallbackUrl = isSingapore
+    //   ? `https://suvarnagopura.com/VrudhiPortalAPISG/api/payment-gateway/goldrate-details/${targetBranch}`
+    //   : `${COLLECTION_API}/goldrate?branch=${targetBranch.toUpperCase()}`;
+    const primaryUrl = `https://thrilok.bhima.sg/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch}`;
+    const fallbackUrl = `https://thrilok.bhima.sg/VrudhiPortalAPI/api/payment-gateway/goldrate-details/${targetBranch}`;
 
     try {
       let data = null;

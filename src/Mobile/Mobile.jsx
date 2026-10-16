@@ -870,9 +870,11 @@ const Mobile = () => {
                   fontFamily: "'Inter', sans-serif",
                   letterSpacing: "0.2px"
                 }}>
-                  {selectedCountry === "Singapore" ? "Mobile Number or Email" : "Mobile Number"}
+                  {/* {selectedCountry === "Singapore" ? "Mobile Number or Email" : "Mobile Number"} */}
+                  Mobile Number
                 </Form.Label>
-                {selectedCountry === "Singapore" && (
+                {/* Badge hidden - mobile only login */}
+                {false && selectedCountry === "Singapore" && (
                   <div style={{
                     display: "inline-flex",
                     alignItems: "center",

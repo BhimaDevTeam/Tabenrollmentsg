@@ -32,7 +32,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Card } from "react-bootstrap";
 import { useSelector, useDispatch } from "react-redux";
 import { setSelectedCustomerID } from "../../redux/customer/customerSlice";
-import { Drafttabledb, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API, SG_SEARCH_CUSTOMER_API } from "../../apiurl";
+import { Drafttabledb, getCollectionApiUrl, SG_CUSTOMER_DATA_CREATE_API, SG_SEARCH_CUSTOMER_API, SG_EMAIL_SEARCH_CUSTOMER_API } from "../../apiurl";
 import { formatCurrency } from "../../utlis/currencyUtils";
 import WebCamComponent from "./WebCamComponent";
 import UploadDocument from "./UploadFile";
@@ -1812,11 +1812,11 @@ const Mypage = () => {
 
     let crmList = null;
     try {
-      const res = await fetch(`${SG_SEARCH_CUSTOMER_API}/${encodeURIComponent(normalized)}`);
+      const res = await fetch(`${SG_EMAIL_SEARCH_CUSTOMER_API}/${encodeURIComponent(normalized)}`);
       if (res.ok) crmList = await res.json();
     } catch (err) {
       try {
-        const proxyRes = await fetch(`/api/crm/api_db.js/api/Searchcustomer/${encodeURIComponent(normalized)}`);
+        const proxyRes = await fetch(`/api/crm/api_db.js/api/SearchcustomerEmail/${encodeURIComponent(normalized)}`);
         if (proxyRes.ok) crmList = await proxyRes.json();
       } catch (proxyErr) {
         console.warn("Email binding lookup failed:", proxyErr);

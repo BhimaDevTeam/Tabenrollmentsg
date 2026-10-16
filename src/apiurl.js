@@ -86,3 +86,5 @@ export const getNewMemberApiUrl = (countryOrCode) => {
 // ── Singapore CRM - customer lookup by mobile / email ────────────────
 export const SG_SEARCH_CUSTOMER_API = "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails";
 export const SG_CUSTOMER_DATA_CREATE_API = "https://transaction.bhima.sg/api/customer-upload/Customerdatacreate";
+// Email lookup (GetCustomerDetails only searches by mobile) - used for "Gmail already mapped to other number" check
+export const SG_EMAIL_SEARCH_CUSTOMER_API = "https://transaction.bhima.sg/api/customer/Searchcustomer";

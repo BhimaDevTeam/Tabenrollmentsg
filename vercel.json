@@ -58,6 +58,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/crm/api_db.js/api/SearchcustomerEmail/:id",
+      "destination": "https://transaction.bhima.sg/api/customer/Searchcustomer/:id"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/crm/api_db.js/api/SearchcustomerEmail/:id",
+      "destination": "https://transaction.bhima.sg/api/customer/Searchcustomer/:id"
+    },
+    {
       "source": "/api/crm/api_db.js/api/Customerdatacreate",
       "destination": "https://transaction.bhima.sg/api/customer-upload/Customerdatacreate"
     },

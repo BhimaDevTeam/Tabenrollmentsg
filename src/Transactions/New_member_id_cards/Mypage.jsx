@@ -495,9 +495,11 @@ const Mypage = () => {
         errors.email = "Email ID is required.";
       } else if (!/\S+@\S+\.\S+/.test(subscriberData.email)) {
         errors.email = "Email is invalid.";
-      } else if (subscriberData.isEmailVerified === false) {
-        errors.email = "Please verify your email address with OTP.";
       }
+      // Email OTP verification not required for now
+      // else if (subscriberData.isEmailVerified === false) {
+      //   errors.email = "Please verify your email address with OTP.";
+      // }
       if (!subscriberData.address1.trim() && aadharverified !== 1) {
         errors.address1 = "Address is required.";
       }
@@ -1395,11 +1397,12 @@ const Mypage = () => {
         setExpanded("subscriber-header");
         return;
       }
-      if (subscriberData.isEmailVerified === false) {
-        toast.error("Please verify your email address with OTP.");
-        setExpanded("subscriber-header");
-        return;
-      }
+      // Email OTP verification not required for now
+      // if (subscriberData.isEmailVerified === false) {
+      //   toast.error("Please verify your email address with OTP.");
+      //   setExpanded("subscriber-header");
+      //   return;
+      // }
       const emailConflictMsg = await checkEmailBinding(subscriberData.email, subscriberData.mobileNo);
       if (emailConflictMsg) {
         toast.error(emailConflictMsg);

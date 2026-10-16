@@ -957,6 +957,7 @@ const Subscriberdetails = ({
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
             <Form.Label className="form-label mb-0">
               Email-ID*:{" "}
+              {/* Email OTP verification not required for now
               {isEmailVerified ? (
                 <span style={{ fontSize: "11px", color: "#28a745", fontWeight: "700", marginLeft: "6px" }}>
                   ✓ (Verified)
@@ -966,7 +967,9 @@ const Subscriberdetails = ({
                   (Unverified)
                 </span>
               )}
+              */}
             </Form.Label>
+            {/* Email OTP verification not required for now
             {!isEmailVerified && (
               <button
                 type="button"
@@ -985,6 +988,7 @@ const Subscriberdetails = ({
                 Verify with OTP
               </button>
             )}
+            */}
           </div>
           <div style={{ display: "flex", alignItems: "center" }}>
             <Form.Control

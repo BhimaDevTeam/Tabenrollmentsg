@@ -153,7 +153,9 @@ const Mobile = () => {
   // Always start empty - do NOT pre-fill from localStorage so old emails don't persist after OTP verification
   const [emailInput, setEmailInput] = useState("");
   const [contactInput, setContactInput] = useState("");
-  const isEmailMode = selectedCountry === "Singapore" && (loginMethod === "email" || (contactInput && /[a-zA-Z@]/.test(contactInput)));
+  // Email login disabled for now - mobile number only
+  // const isEmailMode = selectedCountry === "Singapore" && (loginMethod === "email" || (contactInput && /[a-zA-Z@]/.test(contactInput)));
+  const isEmailMode = false;
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   const [errors, setErrors] = useState("");
@@ -434,7 +436,9 @@ const Mobile = () => {
     }
 
     // If input contains letters or '@', auto-detect as email
-    const hasEmailChars = /[a-zA-Z@]/.test(value);
+    // Email login disabled for now
+    // const hasEmailChars = /[a-zA-Z@]/.test(value);
+    const hasEmailChars = false;
     if (hasEmailChars) {
       setContactInput(value);
       setLoginMethod("email");
@@ -470,11 +474,14 @@ const Mobile = () => {
     const rawVal = (contactInput || (loginMethod === "email" ? emailInput : phoneNo) || "").trim();
 
     if (!rawVal) {
-      setErrors(isSingapore ? "Please enter your mobile number or Gmail / Email address." : "Mobile number cannot be empty.");
+      // setErrors(isSingapore ? "Please enter your mobile number or Gmail / Email address." : "Mobile number cannot be empty.");
+      setErrors("Mobile number cannot be empty.");
       return;
     }
 
-    const isEmail = isSingapore && (rawVal.includes("@") || /[a-zA-Z]/.test(rawVal) || loginMethod === "email");
+    // Email login disabled for now
+    // const isEmail = isSingapore && (rawVal.includes("@") || /[a-zA-Z]/.test(rawVal) || loginMethod === "email");
+    const isEmail = false;
 
     // Singapore Email / Gmail flow
     if (isSingapore && isEmail) {
@@ -501,7 +508,8 @@ const Mobile = () => {
     const countryLabel = isSingapore ? "Singapore (+65)" : "Indian (+91)";
 
     if (!digitsOnly) {
-      setErrors(isSingapore ? "Please enter a valid 8-digit mobile number or Gmail / Email." : "Mobile number cannot be empty.");
+      // setErrors(isSingapore ? "Please enter a valid 8-digit mobile number or Gmail / Email." : "Mobile number cannot be empty.");
+      setErrors(isSingapore ? "Please enter a valid 8-digit mobile number." : "Mobile number cannot be empty.");
       return;
     } else if (digitsOnly.length !== reqDigits) {
       setErrors(`Mobile number must be exactly ${reqDigits} digits for ${countryLabel} numbers.`);
@@ -879,7 +887,7 @@ const Mobile = () => {
                     transition: "all 0.25s ease",
                     fontFamily: "'Inter', sans-serif"
                   }}>
-                    <span>{isEmailMode ? "✉️ Email detected" : (contactInput ? "📱 Singapore Mobile" : "📱 +65 or ✉️ Email")}</span>
+                    <span>{isEmailMode ? "✉️ Email detected" : (contactInput ? "📱 Singapore Mobile" : "📱 +65 Mobile")}</span>
                   </div>
                 )}
               </div>
@@ -945,7 +953,7 @@ const Mobile = () => {
                   type={isEmailMode ? "email" : "text"}
                   placeholder={
                     selectedCountry === "Singapore"
-                      ? (isEmailMode ? "Enter your Gmail or Email address" : "Enter 8-digit mobile or email")
+                      ? (isEmailMode ? "Enter your Gmail or Email address" : "Enter 8-digit mobile number")
                       : "Enter 10-digit mobile number"
                   }
                   value={contactInput}
@@ -1024,7 +1032,7 @@ const Mobile = () => {
                   <span>
                     {isEmailMode
                       ? "Enter your valid Gmail or Email address"
-                      : (contactInput ? "Singapore 8-digit mobile number" : "Enter an 8-digit mobile number or Gmail / Email")}
+                      : (contactInput ? "Singapore 8-digit mobile number" : "Enter an 8-digit mobile number")}
                   </span>
                   {isEmailMode && contactInput && (
                     <span style={{

@@ -58,6 +58,22 @@
   ],
   "rewrites": [
     {
+      "source": "/api/crm/api_db.js/api/Customerdatacreate",
+      "destination": "https://transaction.bhima.sg/api/customer-upload/Customerdatacreate"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/crm/api_db.js/api/Customerdatacreate",
+      "destination": "https://transaction.bhima.sg/api/customer-upload/Customerdatacreate"
+    },
+    {
+      "source": "/api/crm/api_db.js/api/Searchcustomer/:id",
+      "destination": "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails/:id"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/crm/api_db.js/api/Searchcustomer/:id",
+      "destination": "https://vrudhi.bhima.info/bhimaapi/api_db.js/api/GetCustomerDetails/:id"
+    },
+    {
       "source": "/api/crm/:path*",
       "destination": "https://bgstaging.bhima.gold/crm/:path*"
     },

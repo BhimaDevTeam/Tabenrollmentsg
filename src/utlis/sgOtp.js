@@ -1,58 +1,53 @@
-import { SG_OTP_SEND_API } from "../apiurl";
+import { SG_OTP_SEND_API, SG_OTP_VALIDATE_API } from "../apiurl";
 
-const OTP_STORE_KEY = "sgOtpSession";
+const basePayload = (mobileNo) => ({
+  verificationType: "SMS",
+  mobileNo: String(mobileNo),
+  isdCode: "+65",
+  country: "INTL",
+  locale: "en-SG",
+});
 
-// Generate a random 6-digit OTP
-const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
-
-// Send an SMS OTP to a Singapore mobile number and remember it for validation.
-// Returns true on success, false when the SMS API could not be reached / rejected.
-export const sendSgOtp = async (mobileNo) => {
-  const otp = generateOtp();
-  const body = JSON.stringify({
-    verificationType: "SMS",
-    mobileNo: String(mobileNo),
-    isdCode: "+65",
-    country: "INTL",
-    locale: "en-SG",
-    smsText: `Your OTP is ${otp} from Bhima Jewellers. This OTP is valid for next 3 minutes only`,
-  });
-  const options = { method: "POST", headers: { "Content-Type": "application/json" }, body };
-
-  let ok = false;
-  try {
-    const res = await fetch(SG_OTP_SEND_API, options);
-    ok = res.ok;
-  } catch (err) {
-    console.warn("SG OTP direct send failed, trying proxy:", err);
+// POST JSON to the OTP API; falls back to the same-origin proxy if the direct call is blocked (CORS).
+const postOtp = async (url, proxyPath, payload) => {
+  const options = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  };
+  const parse = async (res) => {
     try {
-      const res = await fetch("/api/sgotp/send", options);
-      ok = res.ok;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+  try {
+    return await parse(await fetch(url, options));
+  } catch (err) {
+    console.warn("SG OTP direct call failed, trying proxy:", err);
+    try {
+      return await parse(await fetch(proxyPath, options));
     } catch (proxyErr) {
-      console.warn("SG OTP proxy send failed:", proxyErr);
+      console.warn("SG OTP proxy call failed:", proxyErr);
+      return null;
     }
   }
-
-  if (ok) {
-    sessionStorage.setItem(
-      OTP_STORE_KEY,
-      JSON.stringify({ mobileNo: String(mobileNo), otp, expiresAt: Date.now() + 3 * 60 * 1000 })
-    );
-  }
-  return ok;
 };
 
-// Validate entered OTP. Returns "" when valid, otherwise an error message.
-export const verifySgOtp = (mobileNo, enteredOtp) => {
-  let session = null;
-  try {
-    session = JSON.parse(sessionStorage.getItem(OTP_STORE_KEY) || "null");
-  } catch {
-    session = null;
-  }
-  if (!session || session.mobileNo !== String(mobileNo)) return "OTP not sent. Please resend OTP.";
-  if (Date.now() > session.expiresAt) return "OTP expired. Please resend OTP.";
-  if (String(enteredOtp).trim() !== session.otp) return "Invalid OTP. Please try again.";
-  sessionStorage.removeItem(OTP_STORE_KEY);
-  return "";
+// Ask the server to send an SMS OTP. Returns true on success.
+export const sendSgOtp = async (mobileNo) => {
+  const data = await postOtp(SG_OTP_SEND_API, "/api/sgotp/send", basePayload(mobileNo));
+  return Boolean(data && data.success);
+};
+
+// Validate the OTP on the server. Returns "" when valid, otherwise an error message.
+export const verifySgOtp = async (mobileNo, enteredOtp) => {
+  const data = await postOtp(SG_OTP_VALIDATE_API, "/api/sgotp/validate", {
+    ...basePayload(mobileNo),
+    otp: String(enteredOtp).trim(),
+  });
+  if (!data) return "Failed to verify OTP. Please try again.";
+  if (data.success) return "";
+  return data.message || data.error?.message || "Invalid or expired OTP";
 };

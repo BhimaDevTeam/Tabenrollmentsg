@@ -597,7 +597,7 @@ const Mobile = () => {
 
     // Singapore: validate against the OTP sent via SMS
     if (isSingapore) {
-      const sgErr = verifySgOtp(phoneNo, trimmedOtp);
+      const sgErr = await verifySgOtp(phoneNo, trimmedOtp);
       if (sgErr) {
         setOtpError(sgErr);
         setLoading(false);

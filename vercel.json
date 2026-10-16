@@ -58,6 +58,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/sgotp/validate",
+      "destination": "https://transaction.bhima.sg/api/otp/validate"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/sgotp/validate",
+      "destination": "https://transaction.bhima.sg/api/otp/validate"
+    },
+    {
       "source": "/api/sgotp/send",
       "destination": "https://transaction.bhima.sg/api/otp/send"
     },

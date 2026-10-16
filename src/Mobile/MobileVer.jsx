@@ -72,9 +72,12 @@ const MobileVer = () => {
     setLoading(true);
     setError("");
 
-    const countryStr = selectedCountry || localStorage.getItem("selectedCountry") || "Singapore";
-    // Force Singapore for vrudhitabenrollmentsg
-    const isSingapore = true;
+    const isSgPath = typeof window !== "undefined" && (
+      window.location.pathname.toLowerCase().includes("vrudhitabenrollmentsg") ||
+      window.location.hostname.toLowerCase().includes("tabenrollmentsg")
+    );
+    const countryStr = selectedCountry || localStorage.getItem("selectedCountry") || (isSgPath ? "Singapore" : "India");
+    const isSingapore = countryStr === "Singapore" || isSgPath;
 
     try {
       // ── Singapore: use CRM Searchcustomer API ──────────────────────────────
@@ -109,12 +112,9 @@ const MobileVer = () => {
         }
 
         if (!firstRecord || !Array.isArray(firstRecord.Names) || firstRecord.Names.length === 0) {
-          // No existing customer — clear any previous session data and go to new enrollment
+          // No existing customer (or API failed) — go to new enrollment
           dispatch(setCustomer([]));
           dispatch(setSelectedCustomerID({}));
-          if (typeof window !== "undefined") {
-            sessionStorage.removeItem("selectedCustomerID");
-          }
           navigate("/Mypage", { state: { phoneNo, email, loginMethod, selectedOption: "withoutAadhar", aadharVerification: 0, selectedScheme, branch } });
           return;
         }
@@ -206,16 +206,6 @@ const MobileVer = () => {
         return;
       }
 
-      // ── India flow disabled (Singapore only) ────────────────────────────────
-      dispatch(setCustomer([]));
-      dispatch(setSelectedCustomerID({}));
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("selectedCustomerID");
-      }
-      navigate("/Mypage", { state: { phoneNo, email, loginMethod, selectedOption: "withoutAadhar", aadharVerification: 0, selectedScheme, branch } });
-      return;
-
-      /*
       // ── India: existing DraftEnrollmentApi flow ────────────────────────────
       const countryCode = "in";
       const response = await fetch(`${Mobileverification}/${phoneNo}?country=${encodeURIComponent(countryStr)}&countryCode=${countryCode}`, {
@@ -342,7 +332,6 @@ const MobileVer = () => {
           }
         }
       }
-      */
     } catch (error) {
       console.error("Error fetching customer data:", error);
       dispatch(setCustomer([]));

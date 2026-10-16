@@ -58,6 +58,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/sgotp/send",
+      "destination": "https://transaction.bhima.sg/api/otp/send"
+    },
+    {
+      "source": "/vrudhitabenrollmentsg/api/sgotp/send",
+      "destination": "https://transaction.bhima.sg/api/otp/send"
+    },
+    {
       "source": "/api/crm/api_db.js/api/SearchcustomerEmail/:id",
       "destination": "https://transaction.bhima.sg/api/customer/Searchcustomer/:id"
     },

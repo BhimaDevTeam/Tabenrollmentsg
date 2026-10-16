@@ -9,6 +9,7 @@ import { fetchBranchDataFunc } from "../utlis/verifyBranch";
 import { CustomerMobileOTP, COLLECTION_API, getCollectionApiUrl, SG_SCHEME_API } from "../apiurl";
 import schemesData, { schemesPageData } from "../data/schemesData";
 import Header from "../header";
+import { sendSgOtp, verifySgOtp } from "../utlis/sgOtp";
 
 // ─── Singapore Branch Codes ───────────────────────────────────────────────────
 const SINGAPORE_BRANCHES = ["LN", "LI", "BGSG"];
@@ -523,10 +524,15 @@ const Mobile = () => {
 
     if (isSingapore) {
       localStorage.setItem("phoneNo", digitsOnly);
+      const sent = await sendSgOtp(digitsOnly);
+      setLoading(false);
+      if (!sent) {
+        setErrors("Unable to send OTP. Please try again.");
+        return;
+      }
       setReceivedOtp("");
       setOtpError("");
       setShowModal(true); // Ask for OTP
-      setLoading(false);
       return;
     }
 
@@ -589,8 +595,18 @@ const Mobile = () => {
       console.warn("Could not save selectedScheme to sessionStorage:", e);
     }
 
-    // Hardcode OTP: 123456
-    if (trimmedOtp === "123456") {
+    // Singapore: validate against the OTP sent via SMS
+    if (isSingapore) {
+      const sgErr = verifySgOtp(phoneNo, trimmedOtp);
+      if (sgErr) {
+        setOtpError(sgErr);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Hardcode OTP: 123456 (India fallback only)
+    if (isSingapore || trimmedOtp === "123456") {
       dispatch(setIsCountryLocked(true));
       const effectiveEmail = (loginMethod === "email" ? (emailInput || contactInput) : (localStorage.getItem("customerEmail") || "")).trim();
       const effectivePhone = (phoneNo || contactInput || "").trim();
@@ -760,6 +776,11 @@ const Mobile = () => {
     setOtpError(""); // clear any previous error
     setReceivedOtp(""); // clear OTP input
     setDisabled(true); // Start the timer
+    if (isSingapore && loginMethod !== "email") {
+      const sent = await sendSgOtp(phoneNo);
+      setMessage(sent ? "OTP resent successfully!" : "Failed to resend OTP.");
+      return;
+    }
     if (isSingapore || loginMethod === "email") {
       setMessage("OTP resent successfully!");
       return;
